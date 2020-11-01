@@ -1,0 +1,14 @@
+{
+    "project_name": "kanban",
+    "template": "@/infrastructure/resource_template_old.json",
+    "infrastructure_home": "@/infrastructure",
+    "alias": {
+        "infra/": "@/infrastructure/",
+        "app/": "@/kanban/"
+    },
+    "stages": [
+        "dev",
+        "qa",
+        "prod"
+    ]
+}

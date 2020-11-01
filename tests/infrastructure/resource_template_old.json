@@ -1,0 +1,930 @@
+{
+    "ddb_tasks_get_iam_policy": {
+        "service": "iam",
+        "type": "policy",
+        "attributes": {
+            "PolicyName": "ddb_tasks_get_v2",
+            "PolicyDocument": "${file.string.eval:iam/ddb_tasks_get_iam_policy.json}"
+        }
+    },
+    "cognito_poweruser_iam_policy": {
+        "service": "iam",
+        "type": "policy",
+        "attributes": {
+            "PolicyName": "AmazonCognitoPowerUser",
+            "PolicyDocument": ""
+        }
+    },
+    "ddb_tasks_put_iam_policy": {
+        "service": "iam",
+        "type": "policy",
+        "attributes": {
+            "PolicyName": "ddb_tasks_put_v2",
+            "PolicyDocument": "${file.string.eval:iam/ddb_tasks_put_iam_policy.json}"
+        }
+    },
+    "lambda_basic_execution_iam_policy": {
+        "service": "iam",
+        "type": "policy",
+        "attributes": {
+            "PolicyName": "AWSLambdaBasicExecutionRole",
+            "PolicyDocument": ""
+        }
+    },
+    "lambda_cognito_read_write_role": {
+        "service": "iam",
+        "type": "role",
+        "attributes": {
+            "RoleName": "cognito_poweruser_v2",
+            "AssumeRolePolicyDocument": "${file.string:iam/lambda_trust.json}",
+            "policies": [
+                "lambda_basic_execution_iam_policy",
+                "cognito_poweruser_iam_policy"
+            ]
+        }
+    },
+    "lambda_ddb_tasks_get_iam_role": {
+        "service": "iam",
+        "type": "role",
+        "attributes": {
+            "RoleName": "lambda_ddb_tasks_get_v2",
+            "AssumeRolePolicyDocument": "${file.string:iam/lambda_trust.json}",
+            "policies": [
+                "lambda_basic_execution_iam_policy",
+                "ddb_tasks_get_iam_policy"
+            ]
+        }
+    },
+    "lambda_ddb_tasks_put_iam_role": {
+        "service": "iam",
+        "type": "role",
+        "attributes": {
+            "RoleName": "lambda_ddb_tasks_put_v2",
+            "AssumeRolePolicyDocument": "${file.string:iam/lambda_trust.json}",
+            "policies": [
+                "lambda_basic_execution_iam_policy",
+                "ddb_tasks_get_iam_policy",
+                "ddb_tasks_put_iam_policy"
+            ]
+        }
+    },
+    "tasks_api": {
+        "service": "apigateway",
+        "type": "rest_api",
+        "model": "default",
+        "attributes": {
+            "name": "tasks_api",
+            "stageName": "api"
+        }
+    },
+    "tasks_api_/tasks_resource": {
+        "service": "apigateway",
+        "type": "api_resource",
+        "attributes": {
+            "restApiId": "${resource.id:tasks_api}",
+            "parentId": "${resource./.id:tasks_api}",
+            "pathPart": "tasks",
+            "cors": true
+        }
+    },
+    "tasks_api_/tasks/GET_method": {
+        "service": "apigateway",
+        "type": "api_method",
+        "attributes": {
+            "restApiId": "${resource.id:tasks_api}",
+            "resourceId": "${resource.id:tasks_api_/tasks_resource}",
+            "resource": "tasks_api_/tasks_resource",
+            "httpMethod": "GET",
+            "authorizationType": "NONE",
+            "integration": {
+                "type": "AWS_PROXY",
+                "uri": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/${resource.arn:api_get_tasks_lambda}/invocations"
+            },
+            "responses": [
+                {
+                    "statusCode": "200",
+                    "models": {
+                        "application/json": "Empty"
+                    },
+                    "parameters": {
+                        "method.response.header.Access-Control-Allow-Origin": false
+                    }
+                }
+            ]
+        }
+    },
+    "tasks_api_/tasks/POST_method": {
+        "service": "apigateway",
+        "type": "api_method",
+        "attributes": {
+            "restApiId": "${resource.id:tasks_api}",
+            "resourceId": "${resource.id:tasks_api_/tasks_resource}",
+            "resource": "tasks_api_/tasks_resource",
+            "httpMethod": "POST",
+            "authorizationType": "NONE",
+            "integration": {
+                "type": "AWS_PROXY",
+                "uri": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/${resource.arn:api_create_task_lambda}/invocations"
+            },
+            "responses": [
+                {
+                    "statusCode": "200",
+                    "models": {
+                        "application/json": "Empty"
+                    },
+                    "parameters": {
+                        "method.response.header.Access-Control-Allow-Origin": false
+                    }
+                }
+            ]
+        }
+    },
+    "tasks_api_/tasks/PUT_method": {
+        "service": "apigateway",
+        "type": "api_method",
+        "attributes": {
+            "restApiId": "${resource.id:tasks_api}",
+            "resourceId": "${resource.id:tasks_api_/tasks_resource}",
+            "resource": "tasks_api_/tasks_resource",
+            "httpMethod": "PUT",
+            "authorizationType": "NONE",
+            "integration": {
+                "type": "AWS_PROXY",
+                "uri": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/${resource.arn:api_update_task_lambda}/invocations"
+            },
+            "responses": [
+                {
+                    "statusCode": "200",
+                    "models": {
+                        "application/json": "Empty"
+                    },
+                    "parameters": {
+                        "method.response.header.Access-Control-Allow-Origin": false
+                    }
+                }
+            ]
+        }
+    },
+    "tasks_api_/tasks/-team-id-_resource": {
+        "service": "apigateway",
+        "type": "api_resource",
+        "attributes": {
+            "restApiId": "${resource.id:tasks_api}",
+            "parentId": "${resource.id:tasks_api_/tasks_resource}",
+            "pathPart": "{team-id}",
+            "cors": true
+        }
+    },
+    "tasks_api_/tasks/-team-id-/GET_method": {
+        "service": "apigateway",
+        "type": "api_method",
+        "attributes": {
+            "restApiId": "${resource.id:tasks_api}",
+            "resourceId": "${resource.id:tasks_api_/tasks/-team-id-_resource}",
+            "resource": "tasks_api_/tasks/-team-id-_resource",
+            "httpMethod": "GET",
+            "authorizationType": "NONE",
+            "integration": {
+                "type": "AWS_PROXY",
+                "uri": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/${resource.arn:api_get_tasks_lambda}/invocations"
+            },
+            "responses": [
+                {
+                    "statusCode": "200",
+                    "models": {
+                        "application/json": "Empty"
+                    },
+                    "parameters": {
+                        "method.response.header.Access-Control-Allow-Origin": false
+                    }
+                }
+            ]
+        }
+    },
+    "tasks_api_/orgs_resource": {
+        "service": "apigateway",
+        "type": "api_resource",
+        "attributes": {
+            "restApiId": "${resource.id:tasks_api}",
+            "parentId": "${resource./.id:tasks_api}",
+            "pathPart": "orgs",
+            "cors": true
+        }
+    },
+    "tasks_api_/orgs/POST_method": {
+        "service": "apigateway",
+        "type": "api_method",
+        "attributes": {
+            "restApiId": "${resource.id:tasks_api}",
+            "resourceId": "${resource.id:tasks_api_/orgs_resource}",
+            "resource": "tasks_api_/orgs_resource",
+            "httpMethod": "POST",
+            "authorizationType": "NONE",
+            "integration": {
+                "type": "AWS_PROXY",
+                "uri": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/${resource.arn:api_create_org_lambda}/invocations"
+            },
+            "responses": [
+                {
+                    "statusCode": "200",
+                    "models": {
+                        "application/json": "Empty"
+                    },
+                    "parameters": {
+                        "method.response.header.Access-Control-Allow-Origin": false
+                    }
+                }
+            ]
+        }
+    },
+    "tasks_api_/teams/POST_method": {
+        "service": "apigateway",
+        "type": "api_method",
+        "attributes": {
+            "restApiId": "${resource.id:tasks_api}",
+            "resourceId": "${resource.id:tasks_api_/teams_resource}",
+            "resource": "tasks_api_/teams_resource",
+            "httpMethod": "POST",
+            "authorizationType": "NONE",
+            "integration": {
+                "type": "AWS_PROXY",
+                "uri": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/${resource.arn:api_create_team_lambda}/invocations"
+            },
+            "responses": [
+                {
+                    "statusCode": "200",
+                    "models": {
+                        "application/json": "Empty"
+                    },
+                    "parameters": {
+                        "method.response.header.Access-Control-Allow-Origin": false
+                    }
+                }
+            ]
+        }
+    },
+    "tasks_api_/teams_resource": {
+        "service": "apigateway",
+        "type": "api_resource",
+        "attributes": {
+            "restApiId": "${resource.id:tasks_api}",
+            "parentId": "${resource./.id:tasks_api}",
+            "pathPart": "teams",
+            "cors": true
+        }
+    },
+    "tasks_api_/users_resource": {
+        "service": "apigateway",
+        "type": "api_resource",
+        "attributes": {
+            "restApiId": "${resource.id:tasks_api}",
+            "parentId": "${resource./.id:tasks_api}",
+            "pathPart": "users",
+            "cors": true
+        }
+    },
+    "tasks_api_/users/POST_method": {
+        "service": "apigateway",
+        "type": "api_method",
+        "attributes": {
+            "restApiId": "${resource.id:tasks_api}",
+            "resourceId": "${resource.id:tasks_api_/users_resource}",
+            "resource": "tasks_api_/users_resource",
+            "httpMethod": "POST",
+            "authorizationType": "NONE",
+            "integration": {
+                "type": "AWS_PROXY",
+                "uri": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/${resource.arn:api_update_user_lambda}/invocations"
+            },
+            "responses": [
+                {
+                    "statusCode": "200",
+                    "models": {
+                        "application/json": "Empty"
+                    },
+                    "parameters": {
+                        "method.response.header.Access-Control-Allow-Origin": false
+                    }
+                }
+            ]
+        }
+    },
+    "auth_api": {
+        "service": "apigateway",
+        "type": "rest_api",
+        "model": "default",
+        "attributes": {
+            "name": "auth_api",
+            "stageName": "api"
+        }
+    },
+    "auth_api_/auth_resource": {
+        "service": "apigateway",
+        "type": "api_resource",
+        "attributes": {
+            "restApiId": "${resource.id:auth_api}",
+            "parentId": "${resource./.id:auth_api}",
+            "pathPart": "auth"
+        }
+    },
+    "auth_api_/auth/login_resource": {
+        "service": "apigateway",
+        "type": "api_resource",
+        "attributes": {
+            "restApiId": "${resource.id:auth_api}",
+            "parentId": "${resource.id:auth_api_/auth_resource}",
+            "pathPart": "login",
+            "cors": true
+        }
+    },
+    "auth_api_/auth/login/POST_method": {
+        "service": "apigateway",
+        "type": "api_method",
+        "attributes": {
+            "restApiId": "${resource.id:auth_api}",
+            "resourceId": "${resource.id:auth_api_/auth/login_resource}",
+            "resource": "auth_api_/auth/login_resource",
+            "httpMethod": "POST",
+            "authorizationType": "NONE",
+            "integration": {
+                "type": "AWS_PROXY",
+                "uri": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/${resource.arn:api_authenticate_user_lambda}/invocations"
+            },
+            "responses":[
+                {
+                    "statusCode": "200",
+                    "models": {
+                        "application/json": "Empty"
+                    },
+                    "parameters": {
+                        "method.response.header.Access-Control-Allow-Origin": false
+                    }
+                }
+            ]
+        }
+    },
+    "auth_api_/auth/resendverification_resource": {
+        "service": "apigateway",
+        "type": "api_resource",
+        "attributes": {
+            "restApiId": "${resource.id:auth_api}",
+            "parentId": "${resource.id:auth_api_/auth_resource}",
+            "pathPart": "resendverification",
+            "cors": true
+        }
+    },
+    "auth_api_/auth/resendverification/-user-id-_resource": {
+        "service": "apigateway",
+        "type": "api_resource",
+        "attributes": {
+            "restApiId": "${resource.id:auth_api}",
+            "parentId": "${resource.id:auth_api_/auth/resendverification_resource}",
+            "pathPart": "{user-id}",
+            "cors": true
+        }
+    },
+    "auth_api_/auth/resendverification/-user-id-/POST_method": {
+        "service": "apigateway",
+        "type": "api_method",
+        "attributes": {
+            "restApiId": "${resource.id:auth_api}",
+            "resourceId": "${resource.id:auth_api_/auth/resendverification/-user-id-_resource}",
+            "resource": "auth_api_/auth/resendverification/-user-id-_resource",
+            "httpMethod": "POST",
+            "authorizationType": "NONE",
+            "integration": {
+                "type": "AWS_PROXY",
+                "uri": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/${resource.arn:api_resend_confirmation_email_lambda}/invocations"
+            },
+            "responses": [
+                {
+                    "statusCode": "200",
+                    "models": {
+                        "application/json": "Empty"
+                    },
+                    "parameters": {
+                        "method.response.header.Access-Control-Allow-Origin": false
+                    }
+                }
+            ]
+        }
+    },
+    "auth_api_/auth/signup_resource": {
+        "service": "apigateway",
+        "type": "api_resource",
+        "attributes": {
+            "restApiId": "${resource.id:auth_api}",
+            "parentId": "${resource.id:auth_api_/auth_resource}",
+            "pathPart": "signup",
+            "cors": true
+        }
+    },
+    "auth_api_/auth/signup/POST_method": {
+        "service": "apigateway",
+        "type": "api_method",
+        "attributes": {
+            "restApiId": "${resource.id:auth_api}",
+            "resourceId": "${resource.id:auth_api_/auth/signup_resource}",
+            "resource": "auth_api_/auth/signup_resource",
+            "httpMethod": "POST",
+            "authorizationType": "NONE",
+            "integration": {
+                "type": "AWS_PROXY",
+                "uri": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/${resource.arn:api_signup_user_lambda}/invocations"
+            },
+            "responses": [
+                {
+                    "statusCode": "200",
+                    "models": {
+                        "application/json": "Empty"
+                    },
+                    "parameters": {
+                        "method.response.header.Access-Control-Allow-Origin": false
+                    }
+                }
+            ]
+        }
+    },
+    "tasks_db": {
+        "service": "dynamodb",
+        "type": "table",
+        "attributes": {
+            "TableName": "tasks_v2",
+            "AttributeDefinitions": [
+                {
+                    "AttributeName": "team_id",
+                    "AttributeType": "S"
+                },
+                {
+                    "AttributeName": "task_id",
+                    "AttributeType": "S"
+                }
+            ],
+            "KeySchema": [
+                {
+                    "AttributeName": "team_id",
+                    "KeyType": "HASH"
+                },
+                {
+                    "AttributeName": "task_id",
+                    "KeyType": "RANGE"
+                }
+            ],
+            "BillingMode": "PAY_PER_REQUEST"
+        }
+    },
+    "api_update_task_lambda": {
+        "service": "lambda",
+        "type": "function",
+        "code_dir": "C:/Users/rwhoo/Desktop/Stuff/kanban/infrastructure/lambda/code/update_task",
+        "attributes": {
+            "FunctionName": "update_task_v2",
+            "Runtime": "python3.8",
+            "Role": "${resource.arn:lambda_ddb_tasks_put_iam_role}",
+            "Handler": "update_task.lambda_handler",
+            "Code": {
+                "ZipFile": "${file.bytes:lambda/api_update_task_lambda.zip}"
+            },
+            "Timeout": 3,
+            "MemorySize": 128,
+            "Publish": true,
+            "permissions": {
+                "StatementId": "Allow_APIGateway_Invoke",
+                "Action": "lambda:InvokeFunction",
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": "${resource.arn:tasks_api_/tasks/PUT_method}"
+            },
+            "Environment": {
+                "Variables": {
+                    "DDB_TABLE_NAME": "${resource.name:tasks_db}"
+                }
+            }
+        }
+    },
+    "api_get_tasks_lambda": {
+        "service": "lambda",
+        "type": "function",
+        "code_dir": "C:/Users/rwhoo/Desktop/Stuff/kanban/infrastructure/lambda/code/get_tasks",
+        "attributes": {
+            "FunctionName": "get_tasks_v2",
+            "Runtime": "python3.8",
+            "Role": "${resource.arn:lambda_ddb_tasks_get_iam_role}",
+            "Handler": "get_tasks.lambda_handler",
+            "Code": {
+                "ZipFile": "${file.bytes:lambda/api_get_tasks_lambda.zip}"
+            },
+            "Timeout": 3,
+            "MemorySize": 128,
+            "Publish": true,
+            "permissions": {
+                "StatementId": "Allow_APIGateway_Invoke",
+                "Action": "lambda:InvokeFunction",
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": "${resource.arn:tasks_api_/tasks/-team-id-/GET_method}"
+            },
+            "Environment": {
+                "Variables": {
+                    "DDB_TABLE_NAME": "${resource.name:tasks_db}"
+                }
+            }
+        }
+    },
+    "api_create_task_lambda": {
+        "service": "lambda",
+        "type": "function",
+        "code_dir": "C:/Users/rwhoo/Desktop/Stuff/kanban/infrastructure/lambda/code/create_task",
+        "attributes": {
+            "FunctionName": "create_task_v2",
+            "Runtime": "python3.8",
+            "Role": "${resource.arn:lambda_ddb_tasks_put_iam_role}",
+            "Handler": "create_task.lambda_handler",
+            "Code": {
+                "ZipFile": "${file.bytes:lambda/api_create_task_lambda.zip}"
+            },
+            "Timeout": 3,
+            "MemorySize": 128,
+            "Publish": true,
+            "permissions": {
+                "StatementId": "Allow_APIGateway_Invoke",
+                "Action": "lambda:InvokeFunction",
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": "${resource.arn:tasks_api_/tasks/POST_method}"
+            },
+            "Environment": {
+                "Variables": {
+                    "DDB_TABLE_NAME": "${resource.name:tasks_db}"
+                }
+            }
+        }
+    },
+    "api_authenticate_user_lambda": {
+        "service": "lambda",
+        "type": "function",
+        "code_dir": "C:/Users/rwhoo/Desktop/Stuff/kanban/infrastructure/lambda/code/authenticate_user",
+        "attributes": {
+            "FunctionName": "authenticate_user_v2",
+            "Runtime": "python3.8",
+            "Role": "${resource.arn:lambda_cognito_read_write_role}",
+            "Handler": "authenticate_user.lambda_handler",
+            "Code": {
+                "ZipFile": "${file.bytes:lambda/api_authenticate_user_lambda.zip}"
+            },
+            "Timeout": 3,
+            "MemorySize": 128,
+            "Publish": true,
+            "permissions": {
+                "StatementId": "Allow_APIGateway_Invoke",
+                "Action": "lambda:InvokeFunction",
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": "${resource.arn:auth_api_/auth/login/POST_method}"
+            },
+            "Environment": {
+                "Variables": {
+                    "COGNITO_APPCLIENT_ID": "${resource.app_client_id:cognito_user_pool}"
+                }
+            }
+        }
+    },
+    "api_resend_confirmation_email_lambda": {
+        "service": "lambda",
+        "type": "function",
+        "code_dir": "C:/Users/rwhoo/Desktop/Stuff/kanban/infrastructure/lambda/code/resend_confirmation_email",
+        "attributes": {
+            "FunctionName": "resend_confirmation_email_v2",
+            "Runtime": "python3.8",
+            "Role": "${resource.arn:lambda_cognito_read_write_role}",
+            "Handler": "resend_confirmation_email.lambda_handler",
+            "Code": {
+                "ZipFile": "${file.bytes:lambda/api_resend_confirmation_email_lambda.zip}"
+            },
+            "Timeout": 3,
+            "MemorySize": 128,
+            "Publish": true,
+            "permissions": {
+                "StatementId": "Allow_APIGateway_Invoke",
+                "Action": "lambda:InvokeFunction",
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": "${resource.arn:auth_api_/auth/resendverification/-user-id-/POST_method}"
+            },
+            "Environment": {
+                "Variables": {
+                    "COGNITO_APPCLIENT_ID": "${resource.app_client_id:cognito_user_pool}"
+                }
+            }
+        }
+    },
+    "api_signup_user_lambda": {
+        "service": "lambda",
+        "type": "function",
+        "code_dir": "C:/Users/rwhoo/Desktop/Stuff/kanban/infrastructure/lambda/code/signup_user",
+        "attributes": {
+            "FunctionName": "signup_user_v2",
+            "Runtime": "python3.8",
+            "Role": "${resource.arn:lambda_cognito_read_write_role}",
+            "Handler": "signup_user.lambda_handler",
+            "Code": {
+                "ZipFile": "${file.bytes:lambda/api_signup_user_lambda.zip}"
+            },
+            "Timeout": 3,
+            "MemorySize": 128,
+            "Publish": true,
+            "permissions": {
+                "StatementId": "Allow_APIGateway_Invoke",
+                "Action": "lambda:InvokeFunction",
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": "${resource.arn:auth_api_/auth/signup/POST_method}"
+            },
+            "Environment": {
+                "Variables": {
+                    "COGNITO_APPCLIENT_ID": "${resource.app_client_id:cognito_user_pool}"
+                }
+            }
+        }
+    },
+    "api_create_org_lambda": {
+        "service": "lambda",
+        "type": "function",
+        "code_dir": "C:/Users/rwhoo/Desktop/Stuff/kanban/infrastructure/lambda/code/create_org",
+        "attributes": {
+            "FunctionName": "create_org_v2",
+            "Runtime": "python3.8",
+            "Role": "${resource.arn:lambda_ddb_tasks_put_iam_role}",
+            "Handler": "create_org.lambda_handler",
+            "Code": {
+                "ZipFile": "${file.bytes:lambda/api_create_org_lambda.zip}"
+            },
+            "Timeout": 3,
+            "MemorySize": 128,
+            "Publish": true,
+            "permissions": {
+                "StatementId": "Allow_APIGateway_Invoke",
+                "Action": "lambda:InvokeFunction",
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": "${resource.arn:tasks_api_/orgs/POST_method}"
+            },
+            "Environment": {
+                "Variables": {
+                    "DDB_TABLE": "${resource.name:tasks_db}"
+                }
+            }
+        }
+    },
+    "api_get_org_lambda": {
+        "service": "lambda",
+        "type": "function",
+        "code_dir": "C:/Users/rwhoo/Desktop/Stuff/kanban/infrastructure/lambda/code/get_org",
+        "attributes": {
+            "FunctionName": "get_org_v2",
+            "Runtime": "python3.8",
+            "Role": "${resource.arn:lambda_ddb_tasks_get_iam_role}",
+            "Handler": "get_org.lambda_handler",
+            "Code": {
+                "ZipFile": "${file.bytes:lambda/api_get_org_lambda.zip}"
+            },
+            "Timeout": 3,
+            "MemorySize": 128,
+            "Publish": true,
+            "permissions": {
+                "StatementId": "Allow_APIGateway_Invoke",
+                "Action": "lambda:InvokeFunction",
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": "${resource.arn:auth_api_/orgs/GET_method}"
+            },
+            "Environment": {
+                "Variables": {
+                    "DDB_TABLE": "${resource.name:tasks_db}"
+                }
+            }
+        }
+    },
+    "api_update_org_lambda": {
+        "service": "lambda",
+        "type": "function",
+        "code_dir": "C:/Users/rwhoo/Desktop/Stuff/kanban/infrastructure/lambda/code/update_org",
+        "attributes": {
+            "FunctionName": "update_org_v2",
+            "Runtime": "python3.8",
+            "Role": "${resource.arn:lambda_ddb_tasks_put_iam_role}",
+            "Handler": "update_org.lambda_handler",
+            "Code": {
+                "ZipFile": "${file.bytes:lambda/api_update_org_lambda.zip}"
+            },
+            "Timeout": 3,
+            "MemorySize": 128,
+            "Publish": true,
+            "permissions": {
+                "StatementId": "Allow_APIGateway_Invoke",
+                "Action": "lambda:InvokeFunction",
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": "${resource.arn:auth_api_/orgs/PUT_method}"
+            },
+            "Environment": {
+                "Variables": {
+                    "DDB_TABLE": "${resource.name:tasks_db}"
+                }
+            }
+        }
+    },
+    "api_create_team_lambda": {
+        "service": "lambda",
+        "type": "function",
+        "code_dir": "C:/Users/rwhoo/Desktop/Stuff/kanban/infrastructure/lambda/code/create_team",
+        "attributes": {
+            "FunctionName": "create_team_v2",
+            "Runtime": "python3.8",
+            "Role": "${resource.arn:lambda_ddb_tasks_put_iam_role}",
+            "Handler": "create_team.lambda_handler",
+            "Code": {
+                "ZipFile": "${file.bytes:lambda/api_create_team_lambda.zip}"
+            },
+            "Timeout": 3,
+            "MemorySize": 128,
+            "Publish": true,
+            "permissions": {
+                "StatementId": "Allow_APIGateway_Invoke",
+                "Action": "lambda:InvokeFunction",
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": "${resource.arn:tasks_api_/teams/POST_method}"
+            },
+            "Environment": {
+                "Variables": {
+                    "DDB_TABLE": "${resource.name:tasks_db}"
+                }
+            }
+        }
+    },
+    "api_update_user_lambda": {
+        "service": "lambda",
+        "type": "function",
+        "code_dir": "C:/Users/rwhoo/Desktop/Stuff/kanban/infrastructure/lambda/code/update_user",
+        "attributes": {
+            "FunctionName": "update_user_v2",
+            "Runtime": "python3.8",
+            "Role": "${resource.arn:lambda_ddb_tasks_put_iam_role}",
+            "Handler": "update_user.lambda_handler",
+            "Code": {
+                "ZipFile": "${file.bytes:lambda/api_update_user_lambda.zip}"
+            },
+            "Timeout": 3,
+            "MemorySize": 128,
+            "Publish": true,
+            "permissions": {
+                "StatementId": "Allow_APIGateway_Invoke",
+                "Action": "lambda:InvokeFunction",
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": "${resource.arn:tasks_api_/users/POST_method}"
+            },
+            "Environment": {
+                "Variables": {
+                    "DDB_TABLE_NAME": "${resource.name:tasks_db}"
+                }
+            }
+        }
+    },
+    "backend_add_user_record_lambda": {
+        "service": "lambda",
+        "type": "function",
+        "code_dir": "C:/Users/rwhoo/Desktop/Stuff/kanban/infrastructure/lambda/code/add_user_record",
+        "attributes": {
+            "FunctionName": "add_user_record_v2",
+            "Runtime": "python3.8",
+            "Role": "${resource.arn:lambda_ddb_tasks_put_iam_role}",
+            "Handler": "add_user_record.lambda_handler",
+            "Code": {
+                "ZipFile": "${file.bytes:lambda/backend_add_user_record_lambda.zip}"
+            },
+            "Timeout": 3,
+            "MemorySize": 128,
+            "Publish": true,
+            "permissions": {
+                "StatementId": "Allow_Cognito_PostConfirmation_Trigger",
+                "Action": "lambda:InvokeFunction",
+                "Principal": "cognito-idp.amazonaws.com",
+                "SourceArn": "${resource.arn:cognito_user_pool}"
+            },
+            "Environment": {
+                "Variables": {
+                    "DDB_TABLE": "${resource.name:tasks_db}"
+                }
+            }
+        }
+    },
+    "website_bucket": {
+        "service": "s3",
+        "type": "bucket",
+        "attributes": {
+            "Bucket": "kanban-v2.${session:stage}.hooper.rocks",
+            "WebsiteConfiguration": {
+                "IndexDocument": {
+                    "Suffix": "index.html"
+                }
+            }
+        }
+    },
+    "website_code_s3_obj": {
+        "service": "s3",
+        "type": "object",
+        "update_mode": "rebuild",
+        "attributes": {
+            "AccessControlPolicy": {
+                "Grants": [
+                    {
+                        "Grantee": {
+                            "Type": "Group",
+                            "URI": "http://acs.amazonaws.com/groups/global/AllUsers"
+                        },
+                        "Permission": "READ"
+                    }
+                ]
+            },
+            "GrantRead": "uri=http://acs.amazonaws.com/groups/global/AllUsers",
+            "Bucket": "${resource.name:website_bucket}",
+            "source": "../kanban/dist/",
+            "prefix": ""
+        }
+    },
+    "cognito_user_pool": {
+        "service": "cognito",
+        "type": "user_pool",
+        "attributes": {
+            "PoolName": "kanban_users_v2",
+            "Policies": {
+                "PasswordPolicy": {
+                    "MinimumLength": 8,
+                    "RequireUppercase": true,
+                    "RequireLowercase": true,
+                    "RequireNumbers": true,
+                    "RequireSymbols": true,
+                    "TemporaryPasswordValidityDays": 7
+                }
+            },
+            "AutoVerifiedAttributes": [
+                "email"
+            ],
+            "VerificationMessageTemplate": {
+                "DefaultEmailOption": "CONFIRM_WITH_LINK"
+            },
+            "ExplicitAuthFlows": [
+                "ALLOW_CUSTOM_AUTH",
+                "ALLOW_USER_PASSWORD_AUTH",
+                "ALLOW_USER_SRP_AUTH",
+                "ALLOW_REFRESH_TOKEN_AUTH"
+            ],
+            "LambdaConfig": {
+                "PostConfirmation": "${resource.arn:backend_add_user_record_lambda}"
+            },
+            "UsernameConfiguration": {
+                "CaseSensitive": false
+            },
+            "Schema": [
+                {
+                    "Name": "email",
+                    "Required": true
+                }
+            ],
+            "Domain": "kanban-v2-${session:stage}-hooper-rocks",
+            "ClientName": "kanban_appclient",
+            "GenerateSecret": false
+        }
+    },
+    "website_cloudfront_distribution": {
+        "service": "cloudfront",
+        "type": "distribution",
+        "attributes": {
+            "description": "",
+            "default_root": "index.html",
+            "origins": [
+                {
+                    "default": true,
+                    "name": "website-bucket",
+                    "domain": "kanban-v2.dev.hooper.rocks.s3.amazonaws.com"
+                }
+            ],
+            "default_origin": "website-bucket",
+            "cache_behaviors": [
+                {
+                    "default": true,
+                    "target_origin": "website-bucket",
+                    "viewer_protocol_policy": "allow-all",
+                    "allowed_methods": ["HEAD", "GET"],
+                    "cached_methods": ["HEAD", "GET"]
+                }
+            ],
+            "custom_errors": [
+                {
+                    "error_code": 403,
+                    "redirect_path": "/index.html", 
+                    "response_code": "200", 
+                    "caching_ttl": 0
+                }, 
+                {
+                    "error_code": 404, 
+                    "redirect_path": "/index.html", 
+                    "response_code": "200", 
+                    "caching_ttl": 0
+                }
+            ],
+            "enabled": true
+        }
+    }
+}

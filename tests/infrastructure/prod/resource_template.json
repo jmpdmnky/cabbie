@@ -1,0 +1,378 @@
+{
+    "lambda_ddb_write_role": {
+        "service": "iam",
+        "type": "role",
+        "attributes": {
+            "RoleName": "lambda_ddb_write",
+            "AssumeRolePolicyDocument": "${file.string:iam/lambda_trust.json}",
+            "policies": [
+                "lambda_basic_execution_policy",
+                "ddb_fullaccess_policy",
+                "lambda_invoke_policy"
+            ]
+        }
+    },
+    "lambda_ddb_read_role": {
+        "service": "iam",
+        "type": "role",
+        "attributes": {
+            "RoleName": "lambda_ddb_read",
+            "AssumeRolePolicyDocument": "${file.string:iam/lambda_trust.json}",
+            "policies": [
+                "lambda_basic_execution_policy",
+                "ddb_readonly_policy"
+            ]
+        }
+    },
+    "lambda_cognito_read_write_role": {
+        "service": "iam",
+        "type": "role",
+        "attributes": {
+            "RoleName": "cognito_poweruser",
+            "AssumeRolePolicyDocument": "${file.string:iam/lambda_trust.json}",
+            "policies": [
+                "lambda_basic_execution_policy",
+                "cognito_poweruser_policy"
+            ]
+        }
+    },
+    "lambda_ddb_apigatway_read_write_role": {
+        "service": "iam",
+        "type": "role",
+        "attributes": {
+            "RoleName": "lambda_ddb_apigateway_readwrite",
+            "AssumeRolePolicyDocument": "${file.string:iam/lambda_trust.json}",
+            "policies": [
+                "lambda_basic_execution_policy",
+                "ddb_fullaccess_policy",
+                "apigateway_admin_policy"
+            ]
+        }
+    },
+    "ideas_db": {
+        "service": "dynamodb",
+        "type": "table",
+        "attributes": {
+            "AttributeDefinitions": [
+                {
+                    "AttributeName": "user_id",
+                    "AttributeType": "S"
+                },
+                {
+                    "AttributeName": "idea_id",
+                    "AttributeType": "S"
+                }
+            ],
+            "TableName": "ideas_db",
+            "KeySchema": [
+                {
+                    "AttributeName": "user_id",
+                    "KeyType": "HASH"
+                },
+                {
+                    "AttributeName": "idea_id",
+                    "KeyType": "RANGE"
+                }
+            ],
+            "BillingMode": "PAY_PER_REQUEST"
+        }
+    },
+    "api_idea_get_lambda": {
+        "service": "lambda",
+        "type": "function",
+        "code_dir": "C:/Users/rwhoo/Desktop/Stuff/ideaverse/code/api_idea_get_lambda",
+        "attributes": {
+            "FunctionName": "get_idea",
+            "Runtime": "python3.8",
+            "Role": "${resource.arn:lambda_ddb_read_role}",
+            "Handler": "lambda_function.lambda_handler",
+            "Code": {
+                "ZipFile": "${file.bytes:lambda/api_idea_get_lambda.zip}"
+            },
+            "Timeout": 30,
+            "MemorySize": 512,
+            "Publish": true,
+            "permissions": {
+                "StatementId": "Allow_APIGateway_Invoke",
+                "Action": "lambda:InvokeFunction",
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": "arn:aws:execute-api:us-east-1:${session:account_id}:${resource.id:ideaverse_api}/*/GET/ideas/*"
+            }
+        }
+    },
+    "api_idea_put_lambda": {
+        "service": "lambda",
+        "type": "function",
+        "code_dir": "C:/Users/rwhoo/Desktop/Stuff/ideaverse/code/api_idea_put_lambda",
+        "attributes": {
+            "FunctionName": "put_idea",
+            "Runtime": "python3.8",
+            "Role": "${resource.arn:lambda_ddb_write_role}",
+            "Handler": "lambda_function.lambda_handler",
+            "Code": {
+                "ZipFile": "${file.bytes:lambda/api_idea_put_lambda.zip}"
+            },
+            "Timeout": 30,
+            "MemorySize": 512,
+            "Publish": true,
+            "permissions": {
+                "StatementId": "Allow_APIGateway_Invoke",
+                "Action": "lambda:InvokeFunction",
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": "arn:aws:execute-api:us-east-1:${session:account_id}:${resource.id:ideaverse_api}/*/PUT/ideas/*"
+            }
+        }
+    },
+    "api_idea_edit_lambda": {
+        "service": "lambda",
+        "type": "function",
+        "code_dir": "C:/Users/rwhoo/Desktop/Stuff/ideaverse/code/api_idea_edit_lambda",
+        "attributes": {
+            "FunctionName": "edit_idea",
+            "Runtime": "python3.8",
+            "Role": "${resource.arn:lambda_ddb_write_role}",
+            "Handler": "lambda_function.lambda_handler",
+            "Code": {
+                "ZipFile": "${file.bytes:lambda/api_idea_edit_lambda.zip}"
+            },
+            "Timeout": 30,
+            "MemorySize": 512,
+            "Publish": true,
+            "permissions": {
+                "StatementId": "Allow_APIGateway_Invoke",
+                "Action": "lambda:InvokeFunction",
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": "arn:aws:execute-api:us-east-1:${session:account_id}:${resource.id:ideaverse_api}/*/POST/ideas/*"
+            }
+        }
+    },
+    "api_category_get_lambda": {
+        "service": "lambda",
+        "type": "function",
+        "code_dir": "C:/Users/rwhoo/Desktop/Stuff/ideaverse/code/api_category_get_lambda",
+        "attributes": {
+            "FunctionName": "get_category",
+            "Runtime": "python3.8",
+            "Role": "${resource.arn:lambda_ddb_read_role}",
+            "Handler": "lambda_function.lambda_handler",
+            "Code": {
+                "ZipFile": "${file.bytes:lambda/api_category_get_lambda.zip}"
+            },
+            "Timeout": 30,
+            "MemorySize": 512,
+            "Publish": true,
+            "permissions": {
+                "StatementId": "Allow_APIGateway_Invoke",
+                "Action": "lambda:InvokeFunction",
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": "arn:aws:execute-api:us-east-1:${session:account_id}:${resource.id:ideaverse_api}/*/GET/categories/*"
+            }
+        }
+    },
+    "api_category_put_lambda": {
+        "service": "lambda",
+        "type": "function",
+        "code_dir": "C:/Users/rwhoo/Desktop/Stuff/ideaverse/code/api_category_put_lambda",
+        "attributes": {
+            "FunctionName": "put_category",
+            "Runtime": "python3.8",
+            "Role": "${resource.arn:lambda_ddb_write_role}",
+            "Handler": "lambda_function.lambda_handler",
+            "Code": {
+                "ZipFile": "${file.bytes:lambda/api_category_put_lambda.zip}"
+            },
+            "Timeout": 30,
+            "MemorySize": 512,
+            "Publish": true,
+            "permissions": {
+                "StatementId": "Allow_APIGateway_Invoke",
+                "Action": "lambda:InvokeFunction",
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": "arn:aws:execute-api:us-east-1:${session:account_id}:${resource.id:ideaverse_api}/*/PUT/categories/*"
+            }
+        }
+    },
+    "api_category_edit_lambda": {
+        "service": "lambda",
+        "type": "function",
+        "code_dir": "C:/Users/rwhoo/Desktop/Stuff/ideaverse/code/api_category_edit_lambda",
+        "attributes": {
+            "FunctionName": "edit_category",
+            "Runtime": "python3.8",
+            "Role": "${resource.arn:lambda_ddb_write_role}",
+            "Handler": "lambda_function.lambda_handler",
+            "Code": {
+                "ZipFile": "${file.bytes:lambda/api_category_edit_lambda.zip}"
+            },
+            "Timeout": 30,
+            "MemorySize": 512,
+            "Publish": true,
+            "permissions": {
+                "StatementId": "Allow_APIGateway_Invoke",
+                "Action": "lambda:InvokeFunction",
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": "arn:aws:execute-api:us-east-1:${session:account_id}:${resource.id:ideaverse_api}/*/POST/categories/*"
+            }
+        }
+    },
+    "api_user_add_lambda": {
+        "service": "lambda",
+        "type": "function",
+        "code_dir": "C:/Users/rwhoo/Desktop/Stuff/ideaverse/code/api_user_add_lambda",
+        "attributes": {
+            "FunctionName": "add_user",
+            "Runtime": "python3.8",
+            "Role": "${resource.arn:lambda_cognito_read_write_role}",
+            "Handler": "lambda_function.lambda_handler",
+            "Code": {
+                "ZipFile": "${file.bytes:lambda/api_user_add_lambda.zip}"
+            },
+            "Timeout": 30,
+            "MemorySize": 512,
+            "Publish": true,
+            "Environment": {
+                "Variables": {
+                    "COGNITO_APP_CLIENT_ID": "${resource.app_client_id:cognito_user_pool}"
+                }
+            }
+        }
+    },
+    "backend_user_add_record_lambda": {
+        "service": "lambda",
+        "type": "function",
+        "code_dir": "C:/Users/rwhoo/Desktop/Stuff/ideaverse/code/backend_user_add_record_lambda",
+        "attributes": {
+            "FunctionName": "add_user_record",
+            "Runtime": "python3.8",
+            "Role": "${resource.arn:lambda_ddb_apigatway_read_write_role}",
+            "Handler": "lambda_function.lambda_handler",
+            "Code": {
+                "ZipFile": "${file.bytes:lambda/backend_user_add_record_lambda.zip}"
+            },
+            "Timeout": 30,
+            "MemorySize": 512,
+            "Publish": true,
+            "Environment": {
+                "Variables": {
+                    "APIGATEWAY_ID": "${resource.id:ideaverse_api}",
+                    "APIGATEWAY_STAGE_NAME": "${resource.stage:ideaverse_api}",
+                    "APIGATEWAY_USAGEPLAN_ID": "${resource.id:api_usageplan}"
+                }
+            },
+            "permissions": {
+                "StatementId": "Allow_Cognito_PostConfirmation_Trigger",
+                "Action": "lambda:InvokeFunction",
+                "Principal": "cognito-idp.amazonaws.com",
+                "SourceArn": "${resource.arn:cognito_user_pool}"
+            }
+        }
+    },
+    "ideaverse_api": {
+        "service": "apigateway",
+        "type": "rest_api",
+        "attributes": {
+            "body": "${file.string.eval.bytes:apigateway/ideaverse_api/ideaverse_api-dev-oas30-apigateway.yaml}",
+            "stageName": "api"
+        }
+    },
+    "cognito_user_pool": {
+        "service": "cognito",
+        "type": "user_pool",
+        "attributes": {
+            "PoolName": "ideaverse_users",
+            "Policies": {
+                "PasswordPolicy": {
+                    "MinimumLength": 8,
+                    "RequireUppercase": true,
+                    "RequireLowercase": true,
+                    "RequireNumbers": true,
+                    "RequireSymbols": true,
+                    "TemporaryPasswordValidityDays": 7
+                }
+            },
+            "LambdaConfig": {
+                "PostConfirmation": "${resource.arn:backend_user_add_record_lambda}"
+            },
+            "UsernameConfiguration": {
+                "CaseSensitive": false
+            },
+            "Schema": [
+                {
+                    "Name": "email",
+                    "Required": true
+                }
+            ],
+            "ClientName": "ideaverse_appclient",
+            "GenerateSecret": false
+        }
+    },
+    "ddb_fullaccess_policy": {
+        "service": "iam",
+        "type": "policy",
+        "attributes": {
+            "PolicyName": "AmazonDynamoDBFullAccess",
+            "PolicyDocument": ""
+        }
+    },
+    "ddb_readonly_policy": {
+        "service": "iam",
+        "type": "policy",
+        "attributes": {
+            "PolicyName": "AmazonDynamoDBReadOnlyAccess",
+            "PolicyDocument": ""
+        }
+    },
+    "lambda_basic_execution_policy": {
+        "service": "iam",
+        "type": "policy",
+        "attributes": {
+            "PolicyName": "AWSLambdaBasicExecutionRole",
+            "PolicyDocument": ""
+        }
+    },
+    "cognito_poweruser_policy": {
+        "service": "iam",
+        "type": "policy",
+        "attributes": {
+            "PolicyName": "AmazonCognitoPowerUser",
+            "PolicyDocument": ""
+        }
+    },
+    "apigateway_admin_policy": {
+        "service": "iam",
+        "type": "policy",
+        "attributes": {
+            "PolicyName": "AmazonAPIGatewayAdministrator",
+            "PolicyDocument": ""
+        }
+    },
+    "lambda_invoke_policy": {
+        "service": "iam",
+        "type": "policy",
+        "attributes": {
+            "PolicyName": "AWSLambdaRole",
+            "PolicyDocument": ""
+        }
+    },
+    "api_usageplan": {
+        "service": "apigateway",
+        "type": "usage_plan",
+        "attributes": {
+            "name": "ideaverse_usage_plan",
+            "apiStages": [
+                {
+                    "apiId": "${resource.id:ideaverse_api}",
+                    "stage": "${resource.stage:ideaverse_api}"
+                }
+            ],
+            "throttle": {
+                "burstLimit": 100,
+                "rateLimit": 10
+            },
+            "quota": {
+                "limit": 100000,
+                "period": "MONTH"
+            }
+        }
+    }
+}

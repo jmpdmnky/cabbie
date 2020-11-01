@@ -1,0 +1,93 @@
+{
+    "lambda_ddb_write_role": {
+        "name": "lambda_ddb_write",
+        "arn": "arn:aws:iam::932920895606:role/lambda_ddb_write"
+    },
+    "lambda_ddb_read_role": {
+        "name": "lambda_ddb_read",
+        "arn": "arn:aws:iam::932920895606:role/lambda_ddb_read"
+    },
+    "lambda_cognito_read_write_role": {
+        "name": "cognito_poweruser",
+        "arn": "arn:aws:iam::932920895606:role/cognito_poweruser"
+    },
+    "lambda_ddb_apigatway_read_write_role": {
+        "name": "lambda_ddb_apigateway_readwrite",
+        "arn": "arn:aws:iam::932920895606:role/lambda_ddb_apigateway_readwrite"
+    },
+    "ideas_db": {
+        "name": "ideas_db",
+        "arn": "arn:aws:dynamodb:us-east-1:932920895606:table/ideas_db"
+    },
+    "api_idea_get_lambda": {
+        "name": "get_idea",
+        "arn": "arn:aws:lambda:us-east-1:932920895606:function:get_idea"
+    },
+    "api_idea_put_lambda": {
+        "name": "put_idea",
+        "arn": "arn:aws:lambda:us-east-1:932920895606:function:put_idea"
+    },
+    "api_idea_edit_lambda": {
+        "name": "edit_idea",
+        "arn": "arn:aws:lambda:us-east-1:932920895606:function:edit_idea"
+    },
+    "api_category_get_lambda": {
+        "name": "get_category",
+        "arn": "arn:aws:lambda:us-east-1:932920895606:function:get_category"
+    },
+    "api_category_put_lambda": {
+        "name": "put_category",
+        "arn": "arn:aws:lambda:us-east-1:932920895606:function:put_category"
+    },
+    "api_category_edit_lambda": {
+        "name": "edit_category",
+        "arn": "arn:aws:lambda:us-east-1:932920895606:function:edit_category"
+    },
+    "api_user_add_lambda": {
+        "name": "add_user",
+        "arn": "arn:aws:lambda:us-east-1:932920895606:function:add_user"
+    },
+    "backend_user_add_record_lambda": {
+        "name": "add_user_record",
+        "arn": "arn:aws:lambda:us-east-1:932920895606:function:add_user_record"
+    },
+    "ideaverse_api": {
+        "id": "kcstcbw5i0",
+        "name": "ideaverse_api",
+        "stage": "api",
+        "deployment_id": "zdmub9"
+    },
+    "api_usageplan": {
+        "id": "hhx1yj"
+    },
+    "cognito_user_pool": {
+        "name": "ideaverse_users",
+        "arn": "arn:aws:cognito-idp:us-east-1:932920895606:userpool/us-east-1_5mMGgPc4x",
+        "id": "us-east-1_5mMGgPc4x",
+        "app_client_id": "4kvk5lvgmhb6u4cmrgk2q8r3k3"
+    },
+    "ddb_fullaccess_policy": {
+        "name": "AmazonDynamoDBFullAccess",
+        "arn": "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess"
+    },
+    "ddb_readonly_policy": {
+        "name": "AmazonDynamoDBReadOnlyAccess",
+        "arn": "arn:aws:iam::aws:policy/AmazonDynamoDBReadOnlyAccess"
+    },
+    "lambda_basic_execution_policy": {
+        "name": "AWSLambdaBasicExecutionRole",
+        "arn": "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+    },
+    "cognito_poweruser_policy": {
+        "name": "AmazonCognitoPowerUser",
+        "arn": "arn:aws:iam::aws:policy/AmazonCognitoPowerUser"
+    },
+    "apigateway_admin_policy": {
+        "name": "AmazonAPIGatewayAdministrator",
+        "arn": "arn:aws:iam::aws:policy/AmazonAPIGatewayAdministrator"
+    },
+    "lambda_invoke_policy": {
+        "name": "AWSLambdaRole",
+        "arn": "arn:aws:iam::aws:policy/service-role/AWSLambdaRole"
+    }
+}
