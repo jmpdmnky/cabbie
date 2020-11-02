@@ -118,6 +118,13 @@ class bucket:
         
         if safe_dict_val(self.__resource_template, 'update_mode', default='default'):
             actions = self.__init_destroy_actions() + self.__init_build_actions()
+
+        actions += [
+            {
+                'execution': ( self.__configure_website, ['bucket', 'website_config'] ),
+                'complete': False
+            }
+        ]
         
         return actions
 
@@ -177,6 +184,36 @@ class bucket:
             'arn': 'arn:aws:s3:::{}'.format(bucket)
         }
     
+
+    def __configure_website(self, bucket, website_config):
+        """
+            "website_config": {
+                    "index": --> WebsiteConfiguration["IndexDocument"]["Suffix"],
+                    "error": --> WebsiteConfiguration["ErrorDocument"]["Suffix"],
+                    "redirect": {
+                        "hostname": --> WebsiteConfiguration["RedirectAllRequestsTo"]["HostName"]
+                        "https": True|False --> WebsiteConfiguration["RedirectAllRequestsTo"]["Protocol"]
+                    },
+                    "routing": --> not sure how to handle this
+                }
+        """
+
+        args = {
+            'IndexDocument': {
+                'Suffix': website_config['index']  # this is the only mandatory parameter
+            }
+        }   
+        
+        # TODO: go through other possible args and add int args if they exist
+
+        response = self.__client.put_bucket_website(**args)
+
+        # TODO: get region?
+        return {
+            'website': 'http://{}.s3-website-us-east-1.amazonaws.com'.format(bucket)#self.__live_data["name"])
+        }
+
+
     def __delete_bucket(self):
         response = self.__client.delete_bucket(
             Bucket=self.__live_data['name']
@@ -268,6 +305,10 @@ class object:
         actions = []
         if self.__resource_template['update_mode'] == 'rebuild':
             actions = self.__init_destroy_actions() + self.__init_build_actions()
+
+        actions = [
+            
+        ]
 
         return actions
 
@@ -362,6 +403,42 @@ class object:
                 print(e)
 
         return self.__live_data # TODO this feels weird... should these just update live_data as they go and return nothing?
+
+
+    def __put_object_acl(self, bucket, acls):
+        """
+            "acls": {
+                "read": ["ALL"]
+            },
+        """
+
+        grants = {
+            'full_control': 'GrantFullControl',
+            'read': 'GrantRead',
+            'read_acp': 'GrantReadACP',
+            'write': 'GrantWrite',
+            'write_acp': 'GrantWriteACP',
+        }
+
+
+        args = {}
+
+        for access_type in acls.keys():
+            if grants[access_type] not in args.keys():
+                args[grants[access_type]] = ''
+            if "ALL" in acls[access_type]:
+                args[grants[access_type]] = 'uri=http://acs.amazonaws.com/groups/global/AllUsers'
+            # TODO: handle if they give you more accessthingies
+
+        #policies = attr['policies']
+        for key in self.__live_data['keys']:
+            response = self.__client.put_object_acl(
+                **args,
+                Bucket=bucket,
+                Key=key
+            )
+
+        return {} # Nothing new to return
 
 
     def __delete_objects(self):
