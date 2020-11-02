@@ -1,0 +1,42 @@
+{
+    "website_bucket": {
+        "service": "s3",
+        "type": "bucket",
+        "attributes": {
+            "bucket": "simple-test.${session:stage}.hooper.rocks",
+            "website_config": {
+                "index": "index.html"
+            }
+        }
+    },
+    "website_code_s3_obj": {
+        "service": "s3",
+        "type": "object",
+        "update_mode": "rebuild",
+        "plugins" : {
+            "export_api_endpoints": {
+                "pre": ["build", "modify"],
+                "post": [],
+                "plugin": "eval_external_file",
+                "options": "@/infrastructure/external_files/kanban_prod_env",
+                "priority": 0
+            },
+            "build_website_code": {
+                "pre": ["build", "modify"],
+                "post": [],
+                "plugin": "npm",
+                "options": "run build",
+                "priority": 1
+            }
+        },
+        "attributes": {
+            "acls": {
+                "read": ["ALL"]
+            },
+            "GrantRead": "uri=http://acs.amazonaws.com/groups/global/AllUsers",
+            "bucket": "${resource.name:website_bucket}",
+            "source": "@/src/",
+            "prefix": ""
+        }
+    }
+}

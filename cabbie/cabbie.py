@@ -1509,30 +1509,34 @@ except:
 dummy_role_arn = create_dummy_lambda_role()
 
 if __name__ == '__main__':
-    #### NEW ####
-    #app = cloud_app(active_stage)
-
-    #app.build()
-
-    #### OLD ####
-    stage_template = app.resource_template
-
-    if rebuild:
-        destroy_resources(live_resources, stage_template)
-        sleep(10)
+    new_process = True
     
-    if not destroy:
-        print("deploying {} to {}".format(active_stage, account_id))
-        success = create_resources(stage_template, live_resources)
-        if success:
-            modify_resources(stage_template, live_resources)
+    if new_process:
+        #### NEW ####
+        app = cloud_app(active_stage)
+
+        app.build()
+
     else:
-        destroy_resources(live_resources, stage_template)
+        #### OLD ####
+        stage_template = app.resource_template
 
- 
-    delete_dummy_lambda_role()
+        if rebuild:
+            destroy_resources(live_resources, stage_template)
+            sleep(10)
+        
+        if not destroy:
+            print("deploying {} to {}".format(active_stage, account_id))
+            success = create_resources(stage_template, live_resources)
+            if success:
+                modify_resources(stage_template, live_resources)
+        else:
+            destroy_resources(live_resources, stage_template)
 
-    # write resources to file
-    save_live_resources(active_stage, live_resources)
+    
+        delete_dummy_lambda_role()
+
+        # write resources to file
+        save_live_resources(active_stage, live_resources)
 
 

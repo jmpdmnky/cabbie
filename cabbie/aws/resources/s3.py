@@ -133,7 +133,7 @@ class bucket:
         """processes the saved resource data and returns destroy actions, args"""
         return [
             {
-                'execution': ( self.__delete_bucket ),
+                'execution': ( self.__delete_bucket),
                 'complete': False
             }
         ]

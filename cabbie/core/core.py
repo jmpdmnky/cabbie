@@ -38,7 +38,7 @@ SERVICES = {
 
 class cloud_app:
 
-    def __init__(self, stage, config_file=".cabbie/config.json"):
+    def __init__(self, stage, config_file=".cabbie/config.json", verbose=False):
         self.project_home = self.__project_home(config_file)
         self.active_stage = stage
         self.config = file_json('/'.join([self.project_home, config_file]))
@@ -205,51 +205,74 @@ class cloud_app:
         return base_filename.format(self.active_stage)
 
 
-    # cabbie actions
-    def build(self):
-        # construct build queue
-        build_queue = []
+    def build_queue(self):
         for name, resource_data in self.resource_template.items(): # TODO: should modify be separate
             service = resource_data['service']
             resource_type = resource_data['type']
             #print('SERVICES[{}][{}]'.format(service, resource_type))
             #print(SERVICES['s3']['bucket'])
             try:
-                build_queue.append(SERVICES[service][resource_type](
+                yield SERVICES[service][resource_type](
                     self.session,
                     name=name,
                     attributes=self.__template_item(resource_data),
                     resource_template=resource_data,
                     verbose=True
-                ))
+                )
             except Exception as e:
                 print(service, "not implemented")
-        
-        print(build_queue)
 
-        # iterate through build queue, run build
-        while len(build_queue) > 0:
+
+    def process_queue(self, queue, action): # action == build, update, or destroy
+        while len(queue) > 0:
+            actions = {
+                "build": queue[0].build,
+                "update": queue[0].update,
+                "destroy": queue[0].destroy
+            }
             try:
-                updated_attr = self.resource_template[build_queue[0].name()]
-                for response in build_queue[0].build(attributes=self.__template_item(updated_attr)):
+                updated_attr = self.resource_template[queue[0].name()]
+                for response in actions[action](attributes=self.__template_item(updated_attr)):
                     self.update_live_resources(response)
-                    #self.live_resources = { **self.live_resources, **response }  
-                    #save_live_resources(active_stage, live_resources)
 
-                build_queue.pop(0)
+                queue.pop(0)
             except DependecyNotMetError as e:
                 # if dependency not met, move to the back of the queue
-                build_queue.append(build_queue.pop(0))
+                queue.append(queue.pop(0))
 
 
-        # construct update queue
+    # cabbie actions
+    def build(self):
+        # construct build queue
+        queue = list(self.build_queue())
+        
+        print(queue)
 
+        # iterate through build queue, run build
+        process_queue(queue, "build")
 
-        # iterate through update queue, run update
+        # update
+        process_queue(queue, "build")
 
 
     def update(self):
-        pass
+        # TODO: resources that need to be rebuild need to be put first so when other resources that reference them are updated they can get new names, arn
+        # construct update queue
+        queue = list(self.build_queue())
+        
+        print(queue)
+
+        # iterate through update queue, run update
+        while len(queue) > 0:
+            try:
+                updated_attr = self.resource_template[queue[0].name()]
+                for response in queue[0].update(attributes=self.__template_item(updated_attr)):
+                    self.update_live_resources(response)
+
+                queue.pop(0)
+            except DependecyNotMetError as e:
+                # if dependency not met, move to the back of the queue
+                queue.append(queue.pop(0))
 
 
     def destroy(self):

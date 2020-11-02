@@ -1,6 +1,6 @@
 {
     "project_name": "kanban",
-    "template": "@/infrastructure/resource_template_old.json",
+    "template": "@/infrastructure/resource_template.json",
     "infrastructure_home": "@/infrastructure",
     "alias": {
         "infra/": "@/infrastructure/",

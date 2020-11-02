@@ -1,0 +1,11 @@
+{
+    "website_bucket": {
+        "name": "simple-test.dev.hooper.rocks",
+        "region": "/simple-test.dev.hooper.rocks",
+        "arn": "arn:aws:s3:::simple-test.dev.hooper.rocks"
+    },
+    "website_code_s3_obj": {
+        "bucket": "simple-test.dev.hooper.rocks",
+        "keys": []
+    }
+}
