@@ -116,8 +116,8 @@ class bucket:
         """processes the saved resource template and returns update actions, args"""
         actions = []
         
-        if safe_dict_val(self.__resource_template, 'update_mode', default='default'):
-            actions = self.__init_destroy_actions() + self.__init_build_actions()
+        # if safe_dict_val(self.__resource_template, 'update_mode', default='default'):
+        #     actions = self.__init_destroy_actions() + self.__init_build_actions()
 
         actions += [
             {
@@ -302,15 +302,21 @@ class object:
 
     def __init_update_actions(self):
         """processes the saved resource template and returns update actions, args"""
-        actions = []
-        if self.__resource_template['update_mode'] == 'rebuild':
-            actions = self.__init_destroy_actions() + self.__init_build_actions()
+        # actions = []
+        # if self.__resource_template['update_mode'] == 'rebuild':
+        #     actions = self.__init_destroy_actions() + self.__init_build_actions()
 
-        actions = [
+        # actions = [
             
-        ]
+        # ]
 
-        return actions
+        # return actions
+        return [
+            {
+                'execution': ( self.__put_object_acl, ['bucket', 'acls'] ),
+                'complete': False
+            }
+        ]
 
 
     def __init_destroy_actions(self):

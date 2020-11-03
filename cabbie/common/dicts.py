@@ -50,6 +50,20 @@ def dict_wheres(d, *key_vals):
             pass
 
 
+def dict_wheres_2(d, *key_vals):
+    # args should be (k,v) tuples to test against
+    #k, v = key_vals[0]
+    new_dict = {}
+    for sub_dict_key, sub_dict in d.items():
+        try:
+            if all([ True if sub_dict[k] == v else False for k, v in key_vals ]):
+                new_dict[sub_dict_key] = sub_dict
+        except: # if keu does not exist, then don't return it
+            pass
+
+    return new_dict
+
+
 def fwalk_dict_2(d, indent='', indent_char=' ', f=lambda x, kc: x, args={}, print_keys=False, key_crumbs=[]):
     try:
         # if we were passed a dict, walk the dict

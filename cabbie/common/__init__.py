@@ -10,6 +10,7 @@ from .dicts import list_where
 from .dicts import safe_dict_val
 from .dicts import dict_where
 from .dicts import dict_wheres
+from .dicts import dict_wheres_2
 from .dicts import fwalk_dict
 from .dicts import fwalk_dict_2
 from .dicts import dict_select

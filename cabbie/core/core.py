@@ -16,6 +16,7 @@ from common.dicts import fwalk_dict
 from common.dicts import fwalk_dict_2
 from common.dicts import dict_append
 from common.dicts import dict_dotval
+from common.dicts import dict_wheres_2
 
 from common.lists import ins
 
@@ -205,8 +206,11 @@ class cloud_app:
         return base_filename.format(self.active_stage)
 
 
-    def build_queue(self):
-        for name, resource_data in self.resource_template.items(): # TODO: should modify be separate
+    def build_queue(self, template={}):
+        if not template:
+            template = self.resource_template
+
+        for name, resource_data in template.items(): # TODO: should modify be separate
             service = resource_data['service']
             resource_type = resource_data['type']
             #print('SERVICES[{}][{}]'.format(service, resource_type))
@@ -252,27 +256,20 @@ class cloud_app:
         process_queue(queue, "build")
 
         # update
-        process_queue(queue, "build")
+        process_queue(queue, "update")
 
 
     def update(self):
         # TODO: resources that need to be rebuild need to be put first so when other resources that reference them are updated they can get new names, arn
+        to_rebuild = dict_wheres_2(self.resource_template, [('update_mode', 'rebuild')])
+
         # construct update queue
         queue = list(self.build_queue())
         
         print(queue)
 
         # iterate through update queue, run update
-        while len(queue) > 0:
-            try:
-                updated_attr = self.resource_template[queue[0].name()]
-                for response in queue[0].update(attributes=self.__template_item(updated_attr)):
-                    self.update_live_resources(response)
-
-                queue.pop(0)
-            except DependecyNotMetError as e:
-                # if dependency not met, move to the back of the queue
-                queue.append(queue.pop(0))
+        process_queue(queue, "update")
 
 
     def destroy(self):
