@@ -8,9 +8,11 @@ import boto3
 
 from .resources import dependency
 from .resources import DependecyNotMetError
+from .resources import resource
 
 from common.files import file_obj
 from common.files import list_dir
+
 
 from common.dicts import dict_select
 from common.dicts import dict_dotval
@@ -25,84 +27,118 @@ SERVICE = 's3'
 
 # bucket
 
-class bucket:
+class bucket(resource):
 
 
-    def __init__(self, session, name='', attributes={}, resource_template={}, live_data={}, verbose=False):
-        self.__name = name
-        self.__resource_template = resource_template
-        self.__attributes = attributes
-        self.__live_data = live_data if live_data else self.__init_live_data()
-        self.__client = session.client(SERVICE)
-        self.__verbose = verbose
+    def __init__(self, session, name='', attributes={}, resource_template={}, live_data={}, plugins={}, verbose=False):
+        super().__init__(
+            session,
+            SERVICE,
+            name=name, 
+            attributes=attributes, 
+            resource_template=resource_template, 
+            live_data=live_data,
+            verbose=verbose
+        )
+        # self.__name = name
+        # self.__resource_template = resource_template
+        # self.__attributes = attributes
+        # self.__live_data = live_data if live_data else self.__init_live_data()
+        # self.__client = session.client(SERVICE)
+        # self.__verbose = verbose
 
-        self.__actions = {
-            'build': self.__init_build_actions(),
-            'update': self.__init_update_actions(),
-            'destroy': self.__init_destroy_actions()
-        }
+        # self.__actions = {
+        #     'build': self.__init_build_actions(),
+        #     'update': self.__init_update_actions(),
+        #     'destroy': self.__init_destroy_actions()
+        # }
+
+        # self.__plugins = {
+        #     'build': {
+        #         'pre' : [],
+        #         'post': []
+        #     },
+        #     'update': {
+        #         'pre' : [],
+        #         'post': []
+        #     },
+        #     'destroy': {
+        #         'pre' : [],
+        #         'post': []
+        #     }
+        # }
 
     
     # standard functions that should be roughly the same for all types of resources.
-    def build(self, attributes={}, resource_template={}, session=None):
-        """executes build actions 1 by 1 and marks them as done.  raise error if dependencies found"""
-        # if given an updated template, client, replace existing
-        if resource_template:
-            self.__resource_template = resource_template 
-        if attributes:
-            self.__attributes = attributes 
-        if session:
-            self.__client = session.client(SERVICE)
+    # def build(self, attributes={}, resource_template={}, session=None):
+    #     """executes build actions 1 by 1 and marks them as done.  raise error if dependencies found"""
+    #     # if already exists, skip
+    #     if self.__live_data:
+    #         if self.__verbose:
+    #             print('-skipping', self.__name) 
+    #     else:
+    #         if self.__verbose:
+    #             print('-creating', self.__name)
 
-        for action in self.__actions['build']:
-            if not action['complete']:
-                function, arg_names = action['execution']
+    #     # if given an updated template, client, replace existing
+    #     if resource_template:
+    #         self.__resource_template = resource_template 
+    #     if attributes:
+    #         self.__attributes = attributes 
+    #     if session:
+    #         self.__client = session.client(SERVICE)
 
-                args = dict_select(self.__attributes, arg_names)
+    #     for action in self.__actions['build']:
+    #         if not action['complete']:
+    #             function, arg_names = action['execution']
+
+    #             args = dict_select(self.__attributes, arg_names)
                 
-                dependency(args) # raises error if dependencies found
+    #             dependency(args) # raises error if dependencies found
 
-                self.__live_data = { **self.__live_data, **function(**args) }
+    #             self.__live_data = { **self.__live_data, **function(**args) }
 
-                action['complete'] = True
+    #             action['complete'] = True
 
-                yield self.live_data()
+    #             yield self.live_data()
     
 
-    def update(self, attributes={}, resource_template={}, session=None):
-        """executes update actions 1 by 1 and marks them as done.  raise error if dependencies found"""
-        # TODO: only return actions that have the needed attributes 
-        for action in self.__actions['update']:
-            if not action['complete']:
-                function, arg_names = action['execution']
+    # def update(self, attributes={}, resource_template={}, session=None):
+    #     """executes update actions 1 by 1 and marks them as done.  raise error if dependencies found"""
+    #     # TODO: only return actions that have the needed attributes 
+    #     print(self.__actions['update'])
+    #     for action in self.__actions['update']:
+    #         print(action)
+    #         if not action['complete']:
+    #             function, arg_names = action['execution']
 
-                args = dict_select(self.__attributes, arg_names)
+    #             args = dict_select(self.__attributes, arg_names)
                 
-                dependency(args) # raises error if dependencies found
+    #             dependency(args) # raises error if dependencies found
 
-                self.__live_data = { **self.__live_data, **function(**args) }
+    #             self.__live_data = { **self.__live_data, **function(**args) }
 
-                action['complete'] = True
+    #             action['complete'] = True
 
-                yield self.live_data()
+    #             yield self.live_data()
 
 
-    def destroy(self, session):
-        """executes destroy actions 1 by 1 and marks them as done.  raise error if dependencies found"""
-        for action in self.__actions['destroy']:
-            if not action['complete']:
-                function = action['execution']
+    # def destroy(self, attributes={}, session=None):
+    #     """executes destroy actions 1 by 1 and marks them as done.  raise error if dependencies found"""
+    #     for action in self.__actions['destroy']:
+    #         if not action['complete']:
+    #             function, arg_names = action['execution']
 
-                function()
+    #             function()
                 
-                self.__live_data = self.__init_live_data()
+    #             self.__live_data = self.__init_live_data()
 
-                action['complete'] = True
+    #             action['complete'] = True
 
-                yield self.live_data()
+    #             yield self.live_data()
 
 
-    def __init_build_actions(self):
+    def init_build_actions(self):
         """processes the saved resource template and returns build actions, args"""
         return [
             {
@@ -112,8 +148,10 @@ class bucket:
         ]
 
 
-    def __init_update_actions(self):
+    def init_update_actions(self):
         """processes the saved resource template and returns update actions, args"""
+        if self.__verbose:
+            print('-updating', self.__name)
         actions = []
         
         # if safe_dict_val(self.__resource_template, 'update_mode', default='default'):
@@ -129,29 +167,55 @@ class bucket:
         return actions
 
 
-    def __init_destroy_actions(self):
+    def init_destroy_actions(self):
         """processes the saved resource data and returns destroy actions, args"""
         return [
             {
-                'execution': ( self.__delete_bucket),
+                'execution': ( self.__delete_bucket, []),
                 'complete': False
             }
         ]
 
 
-    def __init_live_data(self):
+    def init_live_data(self):
         return {}
 
 
+    # def init_plugin(self, plugin_details, opts={}, pre=[], post=[]):
+    #     self.__attributes = { **self.__attributes, **opts }
+    #     self.__resource_template['attributes'] = { **self.__resource_template['attributes'], **opts }
+
+
+    #     # TODO: instead of sort every time, maybe insert by priority?
+    #     for stage in pre:
+    #         self.__plugins[stage]['pre'] = sorted( self.__plugins[stage]['pre'] + [plugin_details], key=lambda x: x['priority'] )
+
+    #     for stage in post:
+    #         self.__plugins[stage]['post'] = sorted( self.__plugins[stage]['post'] + [plugin_details], key=lambda x: x['priority'] )
+
+
     # standard accessors
-    def live_data(self):
-        return {
-            self.__name : self.__live_data
-        }
+    # def live_data(self):
+    #     return {
+    #         self.__name : self.__live_data
+    #     }
 
     
-    def name(self):
-        return self.__name
+    # def name(self):
+    #     return self.__name
+
+
+    # def template(self):
+    #     return self.__resource_template
+
+
+    # def actions(self, key):
+    #     return self.__plugins[key]['pre'] + self.__actions[key] + self.__plugins[key]['post']
+
+
+    # def attributes(self):
+    #     return self.__attributes
+
 
     # custom method for finding orphaned resources
     @classmethod
@@ -174,9 +238,16 @@ class bucket:
 
     # custom functions to be called in build, update, destroy
     def __create_bucket(self, bucket):
-        response = self.__client.create_bucket(
-            Bucket=bucket
-        )
+        if self.__live_data:
+            if self.__verbose:
+                print('-skipping', bucket) 
+            return self.__live_data
+        else:
+            if self.__verbose:
+                print('-creating', bucket)
+            response = self.__client.create_bucket(
+                Bucket=bucket
+            )
 
         return { # TODO: come up with a way to template-ize this?
             'name': bucket,
@@ -198,6 +269,9 @@ class bucket:
                 }
         """
 
+        if self.__verbose:
+            print('-configuring website for', self.__name)
+
         args = {
             'IndexDocument': {
                 'Suffix': website_config['index']  # this is the only mandatory parameter
@@ -206,7 +280,10 @@ class bucket:
         
         # TODO: go through other possible args and add int args if they exist
 
-        response = self.__client.put_bucket_website(**args)
+        response = self.__client.put_bucket_website(
+            Bucket=bucket,
+            WebsiteConfiguration=args
+            )
 
         # TODO: get region?
         return {
@@ -215,9 +292,17 @@ class bucket:
 
 
     def __delete_bucket(self):
-        response = self.__client.delete_bucket(
-            Bucket=self.__live_data['name']
-        )
+        # response = self.__client.delete_bucket(
+        #     Bucket=self.__live_data['name']
+        # )
+        try:
+            response = self.__client.delete_bucket(
+                Bucket=self.__live_data['name']
+            )
+        except self.__client.exceptions.ClientError as e:
+            if 'BucketNotEmpty' in str(e):
+                raise DependecyNotMetError('An error occurred (BucketNotEmpty) when calling the DeleteBucket operation: The bucket you tried to delete is not empty') from e
+            raise e
 
         # TODO: if bucketnotempty err, raise DependecyNotMetError()
         
@@ -225,72 +310,116 @@ class bucket:
 
 # object
 
-class object:
+class object(resource):
 
 
     def __init__(self, session, name='', attributes={}, resource_template={}, live_data={}, verbose=False):
-        self.__name = name
-        self.__resource_template = resource_template
-        self.__attributes = attributes
-        self.__live_data = live_data if live_data else self.__init_live_data()
-        self.__client = session.client(SERVICE)
-        self.__verbose = verbose
+        super().__init__(
+            session,
+            SERVICE,
+            name=name, 
+            attributes=attributes, 
+            resource_template=resource_template, 
+            live_data=live_data,
+            verbose=verbose
+        )
+        # self.__name = name
+        # self.__resource_template = resource_template
+        # self.__attributes = attributes
+        # self.__live_data = live_data if live_data else self.__init_live_data()
+        # self.__client = session.client(SERVICE)
+        # self.__verbose = verbose
 
-        self.__actions = {
-            'build': self.__init_build_actions(),
-            'update': self.__init_update_actions(),
-            'destroy': self.__init_destroy_actions()
-        }
+        # self.__actions = {
+        #     'build': self.__init_build_actions(),
+        #     'update': self.__init_update_actions(),
+        #     'destroy': self.__init_destroy_actions()
+        # }
+
+        # self.__plugins = {
+        #     'build': {
+        #         'pre' : [],
+        #         'post': []
+        #     },
+        #     'update': {
+        #         'pre' : [],
+        #         'post': []
+        #     },
+        #     'destroy': {
+        #         'pre' : [],
+        #         'post': []
+        #     }
+        # }
 
     
     # standard functions that should be roughly the same for all types of resources.
-    def build(self, attributes={}, resource_template={}, session=None):
-        """executes build actions 1 by 1 and marks them as done.  raise error if dependencies found"""
-        # if given an updated template, client, replace existing
-        if resource_template:
-            self.__resource_template = resource_template 
-        if attributes:
-            self.__attributes = attributes 
-        if session:
-            self.__client = session.client(SERVICE)
+    # def build(self, attributes={}, resource_template={}, session=None):
+    #     """executes build actions 1 by 1 and marks them as done.  raise error if dependencies found"""
+    #     # if already exists, skip
+    #     if self.live_data:
+    #         if self.verbose:
+    #             print('-skipping', self.name) 
+    #     else:
+    #         if self.verbose:
+    #             print('-creating', self.name)
 
-        for action in self.__actions['build']:
-            if not action['complete']:
-                function, arg_names = action['execution']
+    #     # if given an updated template, client, replace existing
+    #     if resource_template:
+    #         self.resource_template = resource_template 
+    #     if attributes:
+    #         self.attributes = attributes 
+    #     if session:
+    #         self.client = session.client(SERVICE)
 
-                args = dict_select(self.__attributes, arg_names)
+    #     for action in self.actions('build'):
+    #         if not action['complete']:
+    #             function, arg_names = action['execution']
+
+    #             args = dict_select(self.attributes, arg_names)
                 
-                dependency(args) # raises error if dependencies found
+    #             dependency(args) # raises error if dependencies found
 
-                self.__live_data = { **self.__live_data, **function(**args) }
+    #             self.live_data = { **self.live_data, **function(**args) }
 
-                action['complete'] = True
+    #             action['complete'] = True
 
-                yield self.live_data()
+    #             yield self.live_resource_data()
     
 
-    def update(self, attributes={}, resource_template={}, session=None):
-        """executes update actions 1 by 1 and marks them as done.  raise error if dependencies found"""
-        # TODO: only return actions that have the needed attributes 
-        pass
+    # def update(self, attributes={}, resource_template={}, session=None):
+    #     """executes update actions 1 by 1 and marks them as done.  raise error if dependencies found"""
+    #     # TODO: only return actions that have the needed attributes 
+    #     for action in self.actions('update'):
+    #         if not action['complete']:
+    #             function, arg_names = action['execution']
 
-
-    def destroy(self, session=None):
-        """executes destroy actions 1 by 1 and marks them as done.  raise error if dependencies found"""
-        for action in self.__actions['destroy']:
-            if not action['complete']:
-                function = action['execution']
+    #             args = dict_select(self.attributes, arg_names)
                 
-                function()
+    #             dependency(args) # raises error if dependencies found
 
-                self.__live_data = self.__init_live_data()
+    #             self.live_data = { **self.live_data, **function(**args) }
 
-                action['complete'] = True
+    #             action['complete'] = True
 
-                yield self.live_data()
+    #             yield self.live_resource_data()
 
 
-    def __init_build_actions(self):
+    # def destroy(self, attributes={}, session=None):
+    #     """executes destroy actions 1 by 1 and marks them as done.  raise error if dependencies found"""
+    #     for action in self.actions('destroy'):
+    #         if not action['complete']:
+    #             function, arg_names = action['execution']
+                
+    #             function()
+
+    #             self.live_data = self.init_live_data()
+
+    #             action['complete'] = True
+
+    #             yield self.live_resource_data()
+
+
+    def init_build_actions(self):
         """processes the saved resource template and returns build actions, args"""
         return [
             {
@@ -300,18 +429,13 @@ class object:
         ]
 
 
-    def __init_update_actions(self):
+    def init_update_actions(self):
         """processes the saved resource template and returns update actions, args"""
-        # actions = []
-        # if self.__resource_template['update_mode'] == 'rebuild':
-        #     actions = self.__init_destroy_actions() + self.__init_build_actions()
-
-        # actions = [
-            
-        # ]
-
-        # return actions
         return [
+            {
+                'execution': ( self.__put_objects, ['bucket', 'source', 'prefix'] ), 
+                'complete': False
+            },
             {
                 'execution': ( self.__put_object_acl, ['bucket', 'acls'] ),
                 'complete': False
@@ -319,7 +443,7 @@ class object:
         ]
 
 
-    def __init_destroy_actions(self):
+    def init_destroy_actions(self):
         """processes the saved resource data and returns destroy actions, args"""
         return [
             {
@@ -329,22 +453,46 @@ class object:
         ]
 
 
-    def __init_live_data(self):
+    def init_live_data(self):
         return {
             'bucket': '',
             'keys': []
         }
 
 
+    # def init_plugin(self, plugin_details, opts={}, pre=[], post=[]):
+    #     self.attributes = { **self.attributes, **opts }
+    #     self.resource_template['attributes'] = { **self.resource_template['attributes'], **opts }
+
+    #     for stage in pre:
+    #         self.plugins[stage]['pre'] = sorted( self.plugins[stage]['pre'] + [plugin_details], key=lambda x: x['priority'] )
+
+    #     for stage in post:
+    #         self.plugins[stage]['post'] = sorted( self.plugins[stage]['post'] + [plugin_details], key=lambda x: x['priority'] )
+
+
+    # def actions(self, key):
+    #     return self.plugins[key]['pre'] + self.actions[key] + self.plugins[key]['post']
+
+
     # standard accessors
-    def live_data(self):
-        return {
-            self.__name : self.__live_data
-        }
+    # def live_data(self):
+    #     return {
+    #         self.name : self.live_data
+    #     }
 
     
-    def name(self):
-        return self.__name
+    # def name(self):
+    #     return self.name
+
+
+    # def template(self):
+    #     return self.resource_template
+
+
+    # def attributes(self):
+    #     return self.attributes
+
 
     # custom method for finding orphaned resources
     @classmethod
@@ -368,10 +516,11 @@ class object:
                 }
             )
 
+
     # custom functions to be called in build, update, destroy
     def __put_objects(self, bucket, source, prefix):
 
-        self.__live_data['bucket'] = bucket #TODO should this be handled elsewhere?
+        self.live_data['bucket'] = bucket #TODO should this be handled elsewhere?
 
         # iterate over list of files in source path
         source_paths = [source] 
@@ -391,24 +540,24 @@ class object:
             }
             ###########################################
 
-            if key in self.__live_data['keys']:
-                if self.__verbose:
+            if key in self.live_data['keys']: # TODO: get rid of these checks, should just be in "build" function
+                if self.verbose:
                     print('-skipping', key) 
             else:
-                if self.__verbose:
+                if self.verbose:
                     print('-creating', key)
-            try: # TODO: come with some standard boto try except that handles expected boto errors?
-                response = self.__client.put_object(
-                    Bucket=bucket,
-                    Body=file_obj(path),
-                    Key=key,
-                    ContentType=metadata_lookup[key.split('.')[-1]]
-                )
-                self.__live_data['keys'].append(key)
-            except Exception as e:
-                print(e)
+                try: # TODO: come with some standard boto try except that handles expected boto errors?
+                    response = self.client.put_object(
+                        Bucket=bucket,
+                        Body=file_obj(path),
+                        Key=key,
+                        ContentType=metadata_lookup[key.split('.')[-1]]
+                    )
+                    self.live_data['keys'].append(key)
+                except Exception as e:
+                    print(e)
 
-        return self.__live_data # TODO this feels weird... should these just update live_data as they go and return nothing?
+        return self.live_data # TODO this feels weird... should these just update live_data as they go and return nothing?
 
 
     def __put_object_acl(self, bucket, acls):
@@ -437,8 +586,8 @@ class object:
             # TODO: handle if they give you more accessthingies
 
         #policies = attr['policies']
-        for key in self.__live_data['keys']:
-            response = self.__client.put_object_acl(
+        for key in self.live_data['keys']:
+            response = self.client.put_object_acl(
                 **args,
                 Bucket=bucket,
                 Key=key
@@ -448,9 +597,9 @@ class object:
 
 
     def __delete_objects(self):
-        for key in self.__live_data['keys']:
-            response = self.__client.delete_object(
-                Bucket=self.__live_data['bucket'],
+        for key in self.live_data['keys']:
+            response = self.client.delete_object(
+                Bucket=self.live_data['bucket'],
                 Key=key
             )
 

@@ -130,3 +130,14 @@ def dict_dotval(d, s, split_val='.'): #TODO: i hate this name
 
     return val
 
+
+def dict_key(d):
+    """gets the name of a dict pseudo-object"""
+    return list(d.keys())[0]
+
+
+def dict_val(d):
+    """gets the name of a dict pseudo-object"""
+    return d[list(d.keys())[0]]
+
+

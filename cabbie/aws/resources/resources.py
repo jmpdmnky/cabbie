@@ -4,6 +4,10 @@ from time import sleep
 
 from common import fwalk_dict
 
+from common.dicts import dict_select
+from common.dicts import dict_dotval
+from common.dicts import safe_dict_val
+
 
 class DependecyNotMetError(Exception):
     pass
@@ -31,3 +35,170 @@ def boto_try(f, args={}, max_retries=5, wait=0, fwait=lambda x: x * x, verbose=F
     
     raise Exception('Max retries exceeded')
 
+
+class resource:
+
+
+    def __init__(self, session, service, name='', attributes={}, resource_template={}, live_data={}, verbose=False):
+        self.name = name
+        self.resource_template = resource_template
+        self.attributes = attributes
+        self.live_data = live_data #if live_data else self.__init_live_data() # TODO: probably need to move init to build, after the "skip if"
+        self.service = service
+        self.client = session.client(service)
+        self.verbose = verbose
+
+        self.default_actions = {
+            'build': self.init_build_actions(),
+            'update': self.init_update_actions(),
+            'destroy': self.init_destroy_actions()
+        }
+
+        self.plugins = {
+            'build': {
+                'pre' : [],
+                'post': []
+            },
+            'update': {
+                'pre' : [],
+                'post': []
+            },
+            'destroy': {
+                'pre' : [],
+                'post': []
+            }
+        }
+
+    
+    # standard functions that should be roughly the same for all types of resources.
+    def build(self, attributes={}, resource_template={}, session=None):
+        """executes build actions 1 by 1 and marks them as done.  raise error if dependencies found"""
+        # if already exists, skip
+        if self.live_data:
+            if self.verbose:
+                print('-skipping', self.name) 
+        else:
+            if self.verbose:
+                print('-creating', self.name)
+
+        # if given an updated template, client, replace existing
+        if resource_template:
+            self.resource_template = resource_template 
+        if attributes:
+            self.attributes = attributes 
+        if session:
+            self.client = session.client(self.service)
+
+        for action in self.actions('build'):
+            if not action['complete']:
+                function, arg_names = action['execution']
+
+                args = dict_select(self.attributes, arg_names)
+                
+                dependency(args) # raises error if dependencies found
+
+                self.live_data = { **self.live_data, **function(**args) }
+
+                action['complete'] = True
+
+                yield self.live_data
+    
+
+    def update(self, attributes={}, resource_template={}, session=None):
+        """executes update actions 1 by 1 and marks them as done.  raise error if dependencies found"""
+        # TODO: only return actions that have the needed attributes 
+        for action in self.actions('update'):
+            if not action['complete']:
+                function, arg_names = action['execution']
+
+                args = dict_select(self.attributes, arg_names)
+                
+                dependency(args) # raises error if dependencies found
+
+                self.live_data = { **self.live_data, **function(**args) }
+
+                action['complete'] = True
+
+                yield self.live_data
+
+
+    def destroy(self, attributes={}, session=None):
+        """executes destroy actions 1 by 1 and marks them as done.  raise error if dependencies found"""
+        for action in self.actions('destroy'):
+            if not action['complete']:
+                function, arg_names = action['execution']
+                
+                function()
+
+                self.live_data = self.init_live_data()
+
+                action['complete'] = True
+
+                yield self.live_data
+
+
+    ##############  Implement in child ##############
+
+    def init_build_actions(self):
+        """processes the saved resource template and returns build actions, args"""
+        return []
+
+
+    def init_update_actions(self):
+        """processes the saved resource template and returns update actions, args"""
+        return []
+
+
+    def init_destroy_actions(self):
+        """processes the saved resource data and returns destroy actions, args"""
+        return []
+
+
+    def init_live_data(self):
+        return {}
+
+    #################################################
+
+
+    def init_plugin(self, plugin_details, opts={}, pre=[], post=[]):
+        self.attributes = { **self.attributes, **opts }
+        self.resource_template['attributes'] = { **self.resource_template['attributes'], **opts }
+
+        for stage in pre:
+            self.plugins[stage]['pre'] = sorted( self.plugins[stage]['pre'] + [plugin_details], key=lambda x: x['priority'] )
+
+        for stage in post:
+            self.plugins[stage]['post'] = sorted( self.plugins[stage]['post'] + [plugin_details], key=lambda x: x['priority'] )
+
+
+    def actions(self, key):
+        return self.plugins[key]['pre'] + self.default_actions[key] + self.plugins[key]['post']
+
+
+    # standard accessors
+    # def live_resource_data(self):
+    #     return {
+    #         self.name : self.live_data
+    #     }
+
+    
+    # def name(self):
+    #     return self.__name
+
+
+    def template(self):
+        return self.resource_template
+
+
+    # def attributes(self):
+    #     return self.__attributes
+
+
+    ##############  Implement in child ##############
+    # custom method for finding orphaned resources
+    @classmethod
+    def list_resources(cls, session=None):
+        """yields a generator of all resources of this type that exist in the aws account"""
+        pass
+
+    #################################################

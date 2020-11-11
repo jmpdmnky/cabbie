@@ -1,4 +1,4 @@
-
+# TODO: look into deques for build queues
 # TODO i think maybe we need this to be in a class that get knows what stage this is?
 
 import re
@@ -17,12 +17,16 @@ from common.dicts import fwalk_dict_2
 from common.dicts import dict_append
 from common.dicts import dict_dotval
 from common.dicts import dict_wheres_2
+from common.dicts import safe_dict_val
+from common.dicts import dict_val
+from common.dicts import dict_key
 
 from common.lists import ins
 
 from aws.resources import s3
 from aws.resources import cloudfront
-#from aws.resources import boto_try
+
+from core.plugins import plugins
 
 from aws.resources import DependecyNotMetError
 
@@ -127,8 +131,7 @@ class cloud_app:
             prefix = '/'.join(prefix)
 
         filename = self.__alias(filename)
-            
-
+        
         if '@' in filename: # 'absolute' path
             return filename.replace('@/', '{}/'.format(self.project_home))
         
@@ -170,12 +173,16 @@ class cloud_app:
 
 
     # core functions
-    def update_live_resources(self, new_data):
-        self.live_resources = {**self.live_resources, **new_data}
+    def update_live_resources(self, name, new_data):
+        if dict_val(new_data): # if the new_data dict is not empty
+            self.live_resources = {**self.live_resources, **{name: new_data}}
+        else: # if the new_data dict is empty, we need to delete
+            self.live_resources.pop(dict_key(new_data))
         
         out_path = self.__full_path(self.__live_resource_file)
         with open(out_path, 'w') as outfile:
             outfile.write(json.dumps(self.live_resources, indent=4))
+
 
     # getters
     def previous_stage(self, stage='', config=''): #TODO should these just point to self? do we need to let users pass in as params?
@@ -213,18 +220,61 @@ class cloud_app:
         for name, resource_data in template.items(): # TODO: should modify be separate
             service = resource_data['service']
             resource_type = resource_data['type']
-            #print('SERVICES[{}][{}]'.format(service, resource_type))
-            #print(SERVICES['s3']['bucket'])
             try:
                 yield SERVICES[service][resource_type](
                     self.session,
                     name=name,
                     attributes=self.__template_item(resource_data),
                     resource_template=resource_data,
+                    live_data=safe_dict_val(self.live_resources, name, default={}),
                     verbose=True
                 )
             except Exception as e:
+                print(e)
                 print(service, "not implemented")
+
+
+    def plugin_queue(self, resource_data):
+        queues = {
+            'build': {
+                'pre': [],
+                'post': []
+            },
+            'modify': {
+                'pre': [],
+                'post': []
+            },
+            'destroy': {
+                'pre': [],
+                'post': []
+            }
+        }
+
+        opts = {}
+
+        if 'plugins' in resource_data.keys():
+            for name, exec_details in resource_data['plugins'].items():
+                action = plugins[exec_details['plugin']]
+                opts = plugins[exec_details['options']]
+
+                for stage in exec_details['pre']:
+                    pass
+
+        
+        return queues, opts
+
+
+    def add_plugins(self, queue):
+        for resource in queue:
+            if 'plugins' in resource.resource_template.keys():
+                for name, exec_details in resource.resource_template['plugins'].items():
+                    action = plugins[exec_details['plugin']]
+
+                    action['priority'] = exec_details['priority']  # TODO: make this optional
+
+                    opts = exec_details['options']
+
+                    resource.init_plugin(action, opts=opts, pre=exec_details['pre'], post=exec_details['post'])
 
 
     def process_queue(self, queue, action): # action == build, update, or destroy
@@ -234,29 +284,36 @@ class cloud_app:
                 "update": queue[0].update,
                 "destroy": queue[0].destroy
             }
+
             try:
-                updated_attr = self.resource_template[queue[0].name()]
+                # updated_attr = self.resource_template[queue[0].name()] not sure why we were repulling this from the main template??
+                updated_attr = queue[0].resource_template
                 for response in actions[action](attributes=self.__template_item(updated_attr)):
-                    self.update_live_resources(response)
+                    self.update_live_resources(queue[0].name, response)
 
                 queue.pop(0)
             except DependecyNotMetError as e:
                 # if dependency not met, move to the back of the queue
                 queue.append(queue.pop(0))
+            # except Exception as e:
+            #     print(e)
 
 
     # cabbie actions
     def build(self):
         # construct build queue
         queue = list(self.build_queue())
-        
-        print(queue)
+        self.add_plugins(queue)
+
 
         # iterate through build queue, run build
-        process_queue(queue, "build")
+        print('building resources')
+        self.process_queue(queue, "build")
 
         # update
-        process_queue(queue, "update")
+        print('updating resources')
+        queue = list(self.build_queue())
+        self.process_queue(queue, "update")
 
 
     def update(self):
@@ -266,14 +323,17 @@ class cloud_app:
         # construct update queue
         queue = list(self.build_queue())
         
-        print(queue)
 
         # iterate through update queue, run update
-        process_queue(queue, "update")
+        self.process_queue(queue, "update")
 
 
     def destroy(self):
-        pass
+        # construct destroy queue
+        queue = list(self.build_queue())
+
+        # iterate through destroy queue, run destroy
+        self.process_queue(queue, "destroy")
 
  
     # cabbie action helpers
@@ -323,6 +383,9 @@ class cloud_app:
         # if string is not actually a string (eg. int), don't evaluate
         if not isinstance(string, str):
             return string
+
+        # handle any @s in filenames TODO: evaluate if this is the right place for this
+        string = self.__full_path(string)
 
         # find all expressions to evaluate
         pattern = r"\${[A-Za-z0-9.:'/_-]+}"

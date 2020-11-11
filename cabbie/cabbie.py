@@ -1515,7 +1515,10 @@ if __name__ == '__main__':
         #### NEW ####
         app = cloud_app(active_stage)
 
-        app.build()
+        if not destroy:
+            app.build()
+        else:
+            app.destroy()
 
     else:
         #### OLD ####

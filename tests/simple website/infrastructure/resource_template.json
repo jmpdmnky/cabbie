@@ -15,17 +15,23 @@
         "update_mode": "rebuild",
         "plugins" : {
             "export_api_endpoints": {
-                "pre": ["build", "modify"],
+                "pre": ["build", "update"],
                 "post": [],
-                "plugin": "eval_external_file",
-                "options": "@/infrastructure/external_files/kanban_prod_env",
+                "plugin": "external_file",
+                "options": {
+                    "path": "@/infrastructure/external_files/kanban_prod_env", 
+                    "function": "eval"
+                },
                 "priority": 0
             },
             "build_website_code": {
-                "pre": ["build", "modify"],
+                "pre": ["build", "update"],
                 "post": [],
-                "plugin": "npm",
-                "options": "run build",
+                "plugin": "os_command",
+                "options": {
+                    "command": "npm run build", 
+                    "exec_dir": "@/"
+                },
                 "priority": 1
             }
         },
@@ -33,7 +39,6 @@
             "acls": {
                 "read": ["ALL"]
             },
-            "GrantRead": "uri=http://acs.amazonaws.com/groups/global/AllUsers",
             "bucket": "${resource.name:website_bucket}",
             "source": "@/src/",
             "prefix": ""

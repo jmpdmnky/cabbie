@@ -43,6 +43,14 @@ class distribution:
     # standard functions that should be roughly the same for all types of resources.
     def build(self, attributes={}, resource_template={}, session=None):
         """executes build actions 1 by 1 and marks them as done.  raise error if dependencies found"""
+        # if already exists, skip
+        if self.__live_data:
+            if self.__verbose:
+                print('-skipping', self.__name) 
+        else:
+            if self.__verbose:
+                print('-creating', self.__name)
+
         # if given an updated template, client, replace existing
         if resource_template:
             self.__resource_template = resource_template 
@@ -62,19 +70,41 @@ class distribution:
                 self.__live_data = { **self.__live_data, **function(**args) }
 
                 action['complete'] = True
-                
+
                 yield self.live_data()
     
 
     def update(self, attributes={}, resource_template={}, session=None):
         """executes update actions 1 by 1 and marks them as done.  raise error if dependencies found"""
         # TODO: only return actions that have the needed attributes 
-        pass
+        for action in self.__actions['update']:
+            if not action['complete']:
+                function, arg_names = action['execution']
+
+                args = dict_select(self.__attributes, arg_names)
+                
+                dependency(args) # raises error if dependencies found
+
+                self.__live_data = { **self.__live_data, **function(**args) }
+
+                action['complete'] = True
+
+                yield self.live_data()
 
 
     def destroy(self, session):
         """executes destroy actions 1 by 1 and marks them as done.  raise error if dependencies found"""
-        pass
+        for action in self.__actions['destroy']:
+            if not action['complete']:
+                function, arg_names = action['execution']
+                
+                function()
+
+                self.__live_data = self.__init_live_data()
+
+                action['complete'] = True
+
+                yield self.live_data()
 
 
     def __init_build_actions(self):
