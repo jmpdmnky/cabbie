@@ -150,8 +150,8 @@ class bucket(resource):
 
     def init_update_actions(self):
         """processes the saved resource template and returns update actions, args"""
-        if self.__verbose:
-            print('-updating', self.__name)
+        if self.verbose:
+            print('-updating', self.name)
         actions = []
         
         # if safe_dict_val(self.__resource_template, 'update_mode', default='default'):
@@ -238,14 +238,14 @@ class bucket(resource):
 
     # custom functions to be called in build, update, destroy
     def __create_bucket(self, bucket):
-        if self.__live_data:
-            if self.__verbose:
+        if self.live_data:
+            if self.verbose:
                 print('-skipping', bucket) 
-            return self.__live_data
+            return self.live_data
         else:
-            if self.__verbose:
+            if self.verbose:
                 print('-creating', bucket)
-            response = self.__client.create_bucket(
+            response = self.client.create_bucket(
                 Bucket=bucket
             )
 
@@ -269,8 +269,8 @@ class bucket(resource):
                 }
         """
 
-        if self.__verbose:
-            print('-configuring website for', self.__name)
+        if self.verbose:
+            print('-configuring website for', self.name)
 
         args = {
             'IndexDocument': {
@@ -280,7 +280,7 @@ class bucket(resource):
         
         # TODO: go through other possible args and add int args if they exist
 
-        response = self.__client.put_bucket_website(
+        response = self.client.put_bucket_website(
             Bucket=bucket,
             WebsiteConfiguration=args
             )
@@ -296,8 +296,8 @@ class bucket(resource):
         #     Bucket=self.__live_data['name']
         # )
         try:
-            response = self.__client.delete_bucket(
-                Bucket=self.__live_data['name']
+            response = self.client.delete_bucket(
+                Bucket=self.live_data['name']
             )
         except self.__client.exceptions.ClientError as e:
             if 'BucketNotEmpty' in str(e):
