@@ -1,0 +1,60 @@
+{
+    "cognito_poweruser_iam_policy": {
+        "aws_managed": true,
+        "name": "AmazonCognitoPowerUser",
+        "arn": "arn:aws:iam::aws:policy/AmazonCognitoPowerUser"
+    },
+    "lambda_basic_execution_iam_policy": {
+        "aws_managed": true,
+        "name": "AWSLambdaBasicExecutionRole",
+        "arn": "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+    },
+    "lambda_cognito_read_write_role": {
+        "name": "cognito_poweruser_v2",
+        "arn": "arn:aws:iam::626712096788:role/cognito_poweruser_v2"
+    },
+    "lambda_ddb_tasks_get_iam_role": {
+        "name": "lambda_ddb_tasks_get_v2",
+        "arn": "arn:aws:iam::626712096788:role/lambda_ddb_tasks_get_v2"
+    },
+    "lambda_ddb_tasks_put_iam_role": {
+        "name": "lambda_ddb_tasks_put_v2",
+        "arn": "arn:aws:iam::626712096788:role/lambda_ddb_tasks_put_v2"
+    },
+    "tasks_db": {
+        "name": "tasks_v2",
+        "arn": "arn:aws:dynamodb:us-east-1:626712096788:table/tasks_v2"
+    },
+    "website_bucket": {
+        "name": "kanban-v2.dev.hooper.rocks",
+        "region": "/kanban-v2.dev.hooper.rocks",
+        "arn": "arn:aws:s3:::kanban-v2.dev.hooper.rocks",
+        "website": "http://kanban-v2.dev.hooper.rocks.s3-website-us-east-1.amazonaws.com",
+        "domain": "kanban-v2.dev.hooper.rocks.s3.amazonaws.com"
+    },
+    "website_code_s3_obj": {
+        "bucket": "kanban-v2.dev.hooper.rocks",
+        "keys": []
+    },
+    "website_cloudfront_distribution": {
+        "name": "E3USTFC0610UZ0",
+        "caller_reference": "40E03F3AAA3F04C1",
+        "id": "E3USTFC0610UZ0",
+        "arn": "arn:aws:cloudfront::626712096788:distribution/E3USTFC0610UZ0"
+    },
+    "ddb_tasks_get_iam_policy": {
+        "aws_managed": true,
+        "name": "ddb_tasks_get_v2",
+        "arn": "arn:aws:iam::626712096788:policy/ddb_tasks_get_v2"
+    },
+    "ddb_tasks_put_iam_policy": {
+        "aws_managed": true,
+        "name": "ddb_tasks_put_v2",
+        "arn": "arn:aws:iam::626712096788:policy/ddb_tasks_put_v2"
+    },
+    "api_update_task_lambda": {
+        "name": "update_task_v2",
+        "aws_managed": true,
+        "arn": "arn:aws:lambda:us-east-1:626712096788:function:update_task_v2"
+    }
+}

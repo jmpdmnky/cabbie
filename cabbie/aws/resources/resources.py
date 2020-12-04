@@ -14,10 +14,18 @@ class DependecyNotMetError(Exception):
 
 
 def dependency(d):
-    pattern = r"\${[A-Za-z0-9.:'/_-]+}" # TODO: store this pattern in a standard location so we can import as needed?
+    pattern = r"\${[A-Za-z0-9.:@'/_-]+}" # TODO: store this pattern in a standard location so we can import as needed?
+    print('dependency()', d)
 
-    if re.search(pattern, json.dumps(d)):
-        raise DependecyNotMetError()
+    def check_dep(s):
+        if isinstance(s, str):
+            if re.search(pattern, s):
+                raise DependecyNotMetError()
+
+
+    fwalk_dict(d, f=check_dep)
+    # if re.search(pattern, json.dumps(d)):
+    #     raise DependecyNotMetError()
 
 
 def boto_try(f, args={}, max_retries=5, wait=0, fwait=lambda x: x * x, verbose=False):
@@ -76,8 +84,10 @@ class resource:
         # if already exists, skip
         if self.live_data:
             if self.verbose:
-                print('-skipping', self.name) 
+                print('-skipping', self.name)
+            return self.live_data
         else:
+            self.live_data = self.init_live_data()
             if self.verbose:
                 print('-creating', self.name)
 
@@ -93,6 +103,7 @@ class resource:
             if not action['complete']:
                 function, arg_names = action['execution']
 
+                # TODO: make dict_select return some default empty value for missing arguments, let each function validate missing args
                 args = dict_select(self.attributes, arg_names)
                 
                 dependency(args) # raises error if dependencies found
@@ -124,13 +135,23 @@ class resource:
 
     def destroy(self, attributes={}, session=None):
         """executes destroy actions 1 by 1 and marks them as done.  raise error if dependencies found"""
+        if not self.live_data:
+            print('-skipping', self.name)
+            return {}
+        else:
+            print('-deleting', self.name)
+
         for action in self.actions('destroy'):
             if not action['complete']:
                 function, arg_names = action['execution']
-                
-                function()
 
-                self.live_data = self.init_live_data()
+                args = dict_select(self.attributes, arg_names)
+
+                #dependency(args) # raises error if dependencies found TODO do i need this?
+                
+                function(**args)
+
+                self.live_data = {} # TODO: this doesnt actually work... need to delete elements one by one as we execute actions and then remove from resources file once empty
 
                 action['complete'] = True
 

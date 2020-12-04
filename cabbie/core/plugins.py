@@ -6,12 +6,14 @@ from common.files import file_bytes
 from common.files import file_string
 from common.files import file_obj
 from common.files import file_json
+from common.files import ensure_valid_path
 
 
-def evaluate(self, string):
+
+def evaluate(string):
     functions = {
         'file': self.__temp_open_file,
-        'string': self.__force_string,
+        'string': force_string,
         'bytes': self.__force_bytes,
         'resource': self.__resource_attribute,
         'session': self.__session_data,
@@ -68,9 +70,10 @@ def os_command(command, exec_dir=None):
     return {}
 
 
-def external_file(path, function): # pass in evaluate
+def external_file(path, function=lambda x: x): # pass in evaluate
+    # TODO: make it possible to pass things in other than eval?
     try:
-        manifest = file_json('{}/manifest.json'.format(path))
+        manifest = evaluate(file_json('{}/manifest.json'.format(path)))
     except Exception as e:
         print(e)
         print('failed to open manifest!')
@@ -83,7 +86,7 @@ def external_file(path, function): # pass in evaluate
 
     try:
         with open(manifest['destination'], 'w') as outfile:
-            outfile.write(evaluate(template))
+            outfile.write(function(template))
     except Exception as e:
         print(e)
         print('failed to write to destination!')

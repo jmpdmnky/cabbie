@@ -1,11 +1,7 @@
-# TODO: look into deques for build queues
-# TODO: BIG TASK: rework, split into "app builder", "config", and "plugin" modules, or related
-
 import re
 import os
 import boto3
 import json
-from zipfile import ZipFile 
 from shutil import copy
 
 from common.files import file_bytes
@@ -26,12 +22,9 @@ from common.dicts import dict_key
 from common.lists import ins
 
 from aws.resources import s3
-from aws.resources import iam
-from aws.resources import ddb
 from aws.resources import cloudfront
-from aws.resources import lmbda
 
-#from core.plugins import plugins
+from core.plugins import plugins
 
 from aws.resources import DependecyNotMetError
 
@@ -42,21 +35,11 @@ SERVICES = {
     's3': {
         'bucket': s3.bucket,
         'object': s3.object
-    },
-    'iam': {
-        'policy': iam.policy,
-        'role': iam.role
-    },
-    'dynamodb': {
-        'table': ddb.table
-    },
-    'lambda': {
-        'function': lmbda.function
     }
 }
 
 
-class cloud_app:
+class app_builder:
 
     def __init__(self, stage, config_file=".cabbie/config.json", verbose=False):
         self.project_home = self.__project_home(config_file)
@@ -87,22 +70,6 @@ class cloud_app:
             fopen=file_json,
             copy_forward=True
         )
-
-        # TODO: make these names a little more distinct... maybe prepend with "plugin_"?
-        self.plugins = {
-            'external_file': {
-                'execution': ( self.external_file, ['path', 'function'] ),
-                'complete': False
-            },
-            'os_command': {
-                'execution': ( self.os_command, ['command', 'exec_dir'] ),
-                'complete': False
-            },
-            'zip': {
-                'execution': ( self.zip_path, ['input_path', 'output_path'] ),
-                'complete': False
-            }
-        }
     
 
     # init actions
@@ -135,9 +102,9 @@ class cloud_app:
     # basic helpers
     def __open_file(self, filename, fopen=file_bytes, copy_forward=False): #fopen=file_string
         """takes a filename, an optonal open function, and an option to copy the file forward to the next stage"""
-        #filepath = self.__full_path(filename)
-        active_filepath = self.__full_path(self.active_stage_filename(self.__alias(filename)))
-        previous_filepath = self.__full_path(self.previous_stage_filename(self.__alias(filename)))
+        filepath = self.__full_path(filename)
+        active_filepath = self.__full_path(self.active_stage_filename(filename))
+        previous_filepath = self.__full_path(self.previous_stage_filename(filename))
 
         # print(filepath)
         # print(active_filepath)
@@ -206,10 +173,10 @@ class cloud_app:
 
     # core functions
     def update_live_resources(self, name, new_data):
-        if new_data: # if the new_data dict is not empty
+        if dict_val(new_data): # if the new_data dict is not empty
             self.live_resources = {**self.live_resources, **{name: new_data}}
         else: # if the new_data dict is empty, we need to delete
-            self.live_resources.pop(name) # TODO: this doesn't work.  I think its because of the way i delete data from the resource.  I get a KeyError, resource name not foundin resources.json
+            self.live_resources.pop(dict_key(new_data))
         
         out_path = self.__full_path(self.__live_resource_file)
         with open(out_path, 'w') as outfile:
@@ -239,35 +206,21 @@ class cloud_app:
 
     def active_stage_filename(self, filename):
         # if there is no previous stage, then the "prev stage file" will be pointing to something in the "infrastructure" folder, not in the .cabbie/stage folder
-        # replace 'infrastructure' with .cabbie/dev @infra/iam/ddb_tasks_put_iam_policy.json
+        # replace 'infrastructure' with .cabbie/dev
         base_filename = filename.replace(self.config['infrastructure_home'], '@/.cabbie/{}')
         
         return base_filename.format(self.active_stage)
 
 
-    def build_queue(self, action, template={}):
+    def build_queue(self, template={}):
         if not template:
             template = self.resource_template
-
-        queue = []
-
-        # if action == build, we also need to add update
-        # kinda cheating here
-        action = [action, 'update'] if action == 'build' else [action]
 
         for name, resource_data in template.items(): # TODO: should modify be separate
             service = resource_data['service']
             resource_type = resource_data['type']
             try:
-                # yield SERVICES[service][resource_type](
-                #     self.session,
-                #     name=name,
-                #     attributes=self.__template_item(resource_data),
-                #     resource_template=resource_data,
-                #     live_data=safe_dict_val(self.live_resources, name, default={}),
-                #     verbose=True
-                # )
-                resource = SERVICES[service][resource_type](
+                yield SERVICES[service][resource_type](
                     self.session,
                     name=name,
                     attributes=self.__template_item(resource_data),
@@ -275,29 +228,9 @@ class cloud_app:
                     live_data=safe_dict_val(self.live_resources, name, default={}),
                     verbose=True
                 )
-                actions = {
-                    'build': resource.build,
-                    'update': resource.update,
-                    'destroy': resource.destroy,
-                }
-
-                for a in action:
-                    queue.append({
-                        'resource': resource,
-                        'action': actions[a]
-                    })
-
-                # yield {
-                #     'resource': resource,
-                #     'action': actions[action]
-                # }
             except Exception as e:
                 print(e)
-                #if service == 'ddb':
-                #    raise e
                 print(service, "not implemented")
-
-        return queue
 
 
     def plugin_queue(self, resource_data):
@@ -331,45 +264,43 @@ class cloud_app:
 
 
     def add_plugins(self, queue):
-        for item in queue:
-            resource = item['resource']
+        for resource in queue:
             if 'plugins' in resource.resource_template.keys():
                 for name, exec_details in resource.resource_template['plugins'].items():
-                    action = self.plugins[exec_details['plugin']]
+                    action = plugins[exec_details['plugin']]
 
                     action['priority'] = exec_details['priority']  # TODO: make this optional
 
                     opts = exec_details['options']
+
+                    ####### TEMPORARY FIX #######
+                    # TODO fix how to pass functions into "external file"...  we probably need to move everything "file" related to common, evaluate to plugins, and move the config details outside of the cabbie class?  maybe to separate core module...
+                    if exec_details['plugin'] == 'external_file':
+                        if opts['function'] == 'eval':
+                            opts['function'] = self.__evaluate
+                    #############################
 
                     resource.init_plugin(action, opts=opts, pre=exec_details['pre'], post=exec_details['post'])
 
 
     def process_queue(self, queue, action): # action == build, update, or destroy
         while len(queue) > 0:
-            # actions = {
-            #     "build": queue[0].build,
-            #     "update": queue[0].update,
-            #     "destroy": queue[0].destroy
-            # }
+            actions = {
+                "build": queue[0].build,
+                "update": queue[0].update,
+                "destroy": queue[0].destroy
+            }
 
-            #print(queue)
             try:
                 # updated_attr = self.resource_template[queue[0].name()] not sure why we were repulling this from the main template??
-                updated_attr = queue[0]['resource'].resource_template
-                # for response in actions[action](attributes=self.__template_item(updated_attr)):
-                #     self.update_live_resources(queue[0].name, response)
-                for response in queue[0]['action'](attributes=self.__template_item(updated_attr)):
-                    self.update_live_resources(queue[0]['resource'].name, response)
+                updated_attr = queue[0].resource_template
+                for response in actions[action](attributes=self.__template_item(updated_attr)):
+                    self.update_live_resources(queue[0].name, response)
 
                 queue.pop(0)
             except DependecyNotMetError as e:
                 # if dependency not met, move to the back of the queue
-                print("DEPENDENCY")
                 queue.append(queue.pop(0))
-            # except Exception as e:
-            #     # TODO: decide what to do with other errors
-            #     queue.pop(0)
-            #     raise e
             # except Exception as e:
             #     print(e)
 
@@ -377,9 +308,7 @@ class cloud_app:
     # cabbie actions
     def build(self):
         # construct build queue
-        # TODO: is it possible for an update to endup before the corresponding build, and do we need to except that?
-        #queue = list(self.build_queue('build')) + list(self.build_queue('update')) 
-        queue = self.build_queue('build')
+        queue = list(self.build_queue())
         self.add_plugins(queue)
 
 
@@ -387,10 +316,10 @@ class cloud_app:
         print('building resources')
         self.process_queue(queue, "build")
 
-        # # update
-        # print('updating resources')
-        # queue = list(self.build_queue('update'))
-        # self.process_queue(queue, "update")
+        # update
+        print('updating resources')
+        queue = list(self.build_queue())
+        self.process_queue(queue, "update")
 
 
     def update(self):
@@ -398,7 +327,7 @@ class cloud_app:
         to_rebuild = dict_wheres_2(self.resource_template, [('update_mode', 'rebuild')])
 
         # construct update queue
-        queue = self.build_queue('update')
+        queue = list(self.build_queue())
         
         # iterate through update queue, run update
         self.process_queue(queue, "update")
@@ -406,7 +335,7 @@ class cloud_app:
 
     def destroy(self):
         # construct destroy queue
-        queue = self.build_queue('destroy')
+        queue = list(self.build_queue())
 
         # iterate through destroy queue, run destroy
         self.process_queue(queue, "destroy")
@@ -437,9 +366,9 @@ class cloud_app:
         return b.decode(encoding)
 
 
-    def __temp_open_file(self, filename, prefix='', f=file_bytes): # TODO replace when we decide how to handle files in resource... we'll probably just require fullpaths?
-        return self.__open_file(
-                '/'.join([prefix, filename]) if prefix else filename,
+    def __temp_open_file(self, filename, prefix='@/infrastructure', f=file_bytes): # TODO replace when we decide how to handle files in resource... we'll probably just require fullpaths?
+        return this.__open_file(
+                '/'.join([prefix, filename]),
                 fopen=f,
                 copy_forward=True
             )
@@ -461,42 +390,32 @@ class cloud_app:
             return string
 
         # handle any @s in filenames TODO: evaluate if this is the right place for this
-        #string = self.__full_path(string)
+        string = self.__full_path(string)
 
         # find all expressions to evaluate
-        pattern = r"\${[A-Za-z0-9.:@'/_-]+}"
+        pattern = r"\${[A-Za-z0-9.:'/_-]+}"
         try:
             matches = re.findall(pattern, string)
             for match in matches:
-                actions, val = match[2:-1].split(':', 1) #trim off the '${' and '}'
-                #print(actions, val)
+                actions, val = match[2:-1].split(':') #trim off the '${' and '}'
                 
-                if 'bytes' in actions or actions == 'file': # TODO: we run into issues with substituting bytes objects into a string... this might not be the smartest way to handle this
+                if 'bytes' in actions: # TODO: we run into issues with substituting bytes objects into a string... this might not be the smartest way to handle this
                     if len(matches) > 1:
                         raise ValueError("Bytes-like objects must evaluated alone.") # TODO: reword this error message
 
                 if actions.split('.')[0] in ['resource']: # we might have other data accessors... vars?
-                    #print(string, 'resource')
                     action, keys = actions.split('.', 1) 
-                    #print(action, keys)
                     val = dict_dotval(functions[action](val), keys) # TODO: this feels hardcode-y
                 else:
                     for action in actions.split('.'): # execute list of actions one by one
-                        #print(action)
                         val = functions[action](val)
 
-                if 'bytes' in actions or actions == 'file': # TODO: this seems too hardcode-y
+                if 'bytes' in actions: # TODO: this seems too hardcode-y
                     return val
-                
                 string = string.replace(match, val)
 
         except Exception as e:
             print(e)
-            #print(re.findall(pattern, string)) #
-            #matches = re.findall(pattern, string)
-            #print(matches[0][2:-1].split(':', 1))
-
-            #raise e #
 
         #print(string)
         return string
@@ -554,89 +473,4 @@ class cloud_app:
                 to_build.append(to_build.pop(0))
 
         return order
-
-
-    # plugins 
-    # TODO:  move these to an external package or something so users can define custom functions
-    def os_command(self, command, exec_dir=None):
-        if exec_dir:
-            #cwd = os.getcwd().replace('\\', '/')
-            #os.system('cd {}'.format(exec_dir))
-            #print(exec_dir)
-            command = 'cd {exec_dir} && {command}'.format(
-                exec_dir=exec_dir,
-                command=command
-            )
-            
-
-        os.system(command)
-        
-        # if exec_dir:
-        #     os.system('cd {}'.format(cwd))
-
-        return {}
-
-
-    def external_file(self, path, function): # pass in evaluate
-        # TODO: make it possible to pass things in other than eval?
-        functions = {
-            'eval': self.__evaluate
-        }
-
-        try:
-            manifest = self.__evaluate(file_json('{}/manifest.json'.format(path)))
-        except Exception as e:
-            print(e)
-            print('failed to open manifest!')
-
-        try:
-            template = file_string('{}/{}'.format(path, manifest['template']))
-        except Exception as e:
-            print(e)
-            print('failed to open template!')
-
-        try:
-            destination = self.__full_path(manifest['destination'])
-            with open(destination, 'w') as outfile:
-                outfile.write(functions[function](template))
-        except Exception as e:
-            print(e)
-            print('failed to write to destination!')
-
-        return {}
-
-
-    def zip_path(self, output_path, input_path=None):
-        # TODO: adapt this to work with files too?
-        # zip project_dir and wrote to zip_file
-        output_path = self.__full_path(output_path)
-
-        if input_path:
-            input_path = self.__full_path(input_path)
-
-            file_paths = [] 
-        
-            # crawling through directory and subdirectories 
-            for root, directories, files in os.walk(input_path): 
-                for filename in files: 
-                    # join the two strings in order to form the full filepath. 
-                    filepath = os.path.join(root, filename) 
-                    arcname = os.path.join(root.replace(input_path,''), filename) 
-                    file_paths.append({'file_path': filepath, 'arcname': arcname}) 
-
-            print('Zipping following project files:') 
-            for file_name in file_paths: 
-                print(file_name['arcname']) 
-
-            # writing files to a zipfile 
-            with ZipFile(output_path, 'w') as zip: 
-                # writing each file one by one 
-                for file in file_paths: 
-                    zip.write(file['file_path'], arcname=file['arcname']) # make arcname the correct path within the zipfile
-
-        # open, return bytes
-        #with open(output_path, 'rb') as infile:
-        #    return infile.read()
-        return {}
-
 

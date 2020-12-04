@@ -7,6 +7,16 @@ def list_where(l, k, v):
             return d
 
 
+def list_where_2(l, k, v):
+    for d in l:
+        try:
+            if d[k] == v:
+                return d
+        except:
+            pass
+    return None
+
+
 def safe_dict_val(d, k, default=False, error=False):
     try:
         return d[k]
@@ -97,24 +107,30 @@ def fwalk_dict(d, indent='', indent_char=' ', f=lambda x: x, args={}, print_keys
                 #print('{}{}:'.format(indent, k))
                 new_dict[k] = fwalk_dict(v, indent+indent_char, indent_char, f, args, print_keys)
             elif isinstance(v, list):
+                if k == 'policies':
+                    print('fwalkdict list', v)
                 new_dict[k] = []
                 for item in v:
                     new_dict[k].append(fwalk_dict(item, indent+indent_char, indent_char, f, args, print_keys))
             else:
                 #print('{}{}: {}'.format(indent, k, v))
                 new_dict[k] = f(v, **args)
+                if k == 'policies':
+                    print(v, new_dict[k])
         return new_dict
     except:
         # if we were passed a non-dict, assume we are at a "leaf level" and return it
         print('{}{}'.format(indent, d)) if print_keys else ''
-        return d
+        #return d
+        print(d)
+        return f(d, **args)
 
 
 def dict_select(d, keys):
     return { k: d[k] for k in keys }
 
 
-def list_select(l, keys): # TODO: implement
+def list_select(l, keys):
     return [ dict_select(d, keys) for d in l ]
 
 

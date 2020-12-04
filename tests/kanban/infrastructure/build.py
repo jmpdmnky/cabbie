@@ -1278,21 +1278,21 @@ account_id = clients['sts'].get_caller_identity()['Account']
 if __name__ == '__main__':
     stage_template = resource_template(active_stage, config)
 
-    # if rebuild:
-    #     destroy_resources(live_resources, stage_template)
+    if rebuild:
+        destroy_resources(live_resources, stage_template)
     
-    # if not destroy:
-    #     print("deploying {} to {}".format(active_stage, account_id))
-    #     success = create_resources(stage_template)
-    #     if success:
-    #         modify_resources(stage_template)
-    # else:
-    #     destroy_resources(live_resources, stage_template)
+    if not destroy:
+        print("deploying {} to {}".format(active_stage, account_id))
+        success = create_resources(stage_template)
+        if success:
+            modify_resources(stage_template)
+    else:
+        destroy_resources(live_resources, stage_template)
 
  
-    # # write resources to file
-    # out_path = '{stage}/resources.json'.format(stage=active_stage)
-    # with open(out_path, 'w') as outfile:
-    #     outfile.write(json.dumps(live_resources, indent=4))
+    # write resources to file
+    out_path = '{stage}/resources.json'.format(stage=active_stage)
+    with open(out_path, 'w') as outfile:
+        outfile.write(json.dumps(live_resources, indent=4))
 
 

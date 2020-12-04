@@ -1,6 +1,6 @@
 {
     "dev": {
-        "aws_profile": "dev-profile",
+        "aws_profile": "kanban-dev",
         "env":{}
     },
     "qa": {

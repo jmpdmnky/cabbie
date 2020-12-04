@@ -9,105 +9,35 @@ from random import getrandbits
 
 
 from .resources import dependency
+from .resources import resource
+
 from common.dicts import dict_select
 from common.dicts import dict_dotval
 
 
-# TODO: come up with a way to template-ize functions?
 # TODO: add verbose print statements
 # TODO: add option to re-up session/client when calling build/update/destroy
 # TODO: modify should create invalidation
 
 SERVICE = 'cloudfront'
 
-# bucket
 
-class distribution:
+class distribution(resource):
 
 
     def __init__(self, session, name='', attributes={}, resource_template={}, live_data={}, verbose=False):
-        self.__name = name
-        self.__resource_template = resource_template
-        self.__attributes = attributes
-        self.__live_data = live_data if live_data else self.__init_live_data()
-        self.__client = session.client(SERVICE)
-        self.__verbose = verbose
-
-        self.__actions = {
-            'build': self.__init_build_actions(),
-            'update': [],
-            'destroy': []
-        }
-
-    
-    # standard functions that should be roughly the same for all types of resources.
-    def build(self, attributes={}, resource_template={}, session=None):
-        """executes build actions 1 by 1 and marks them as done.  raise error if dependencies found"""
-        # if already exists, skip
-        if self.__live_data:
-            if self.__verbose:
-                print('-skipping', self.__name) 
-        else:
-            if self.__verbose:
-                print('-creating', self.__name)
-
-        # if given an updated template, client, replace existing
-        if resource_template:
-            self.__resource_template = resource_template 
-        if attributes:
-            self.__attributes = attributes 
-        if session:
-            self.__client = session.client(SERVICE)
-
-        for action in self.__actions['build']:
-            if not action['complete']:
-                function, arg_names = action['execution']
-
-                args = dict_select(self.__attributes, arg_names)
-                
-                dependency(args) # raises error if dependencies found
-
-                self.__live_data = { **self.__live_data, **function(**args) }
-
-                action['complete'] = True
-
-                yield self.live_data()
-    
-
-    def update(self, attributes={}, resource_template={}, session=None):
-        """executes update actions 1 by 1 and marks them as done.  raise error if dependencies found"""
-        # TODO: only return actions that have the needed attributes 
-        for action in self.__actions['update']:
-            if not action['complete']:
-                function, arg_names = action['execution']
-
-                args = dict_select(self.__attributes, arg_names)
-                
-                dependency(args) # raises error if dependencies found
-
-                self.__live_data = { **self.__live_data, **function(**args) }
-
-                action['complete'] = True
-
-                yield self.live_data()
+        super().__init__(
+            session,
+            SERVICE,
+            name=name, 
+            attributes=attributes, 
+            resource_template=resource_template, 
+            live_data=live_data,
+            verbose=verbose
+        )
 
 
-    def destroy(self, session):
-        """executes destroy actions 1 by 1 and marks them as done.  raise error if dependencies found"""
-        for action in self.__actions['destroy']:
-            if not action['complete']:
-                function, arg_names = action['execution']
-                
-                function()
-
-                self.__live_data = self.__init_live_data()
-
-                action['complete'] = True
-
-                yield self.live_data()
-
-
-    def __init_build_actions(self):
+    def init_build_actions(self):
         """processes the saved resource template and returns build actions, args"""
         return [
             {
@@ -117,34 +47,33 @@ class distribution:
         ]
 
 
-    def __init_update_actions(self):
+    def init_update_actions(self):
         """processes the saved resource template and returns update actions, args"""
         actions = []
-        if self.__resource_template['update_mode'] == 'rebuild':
-            actions = self.__init_destroy_actions() + self.__init_build_actions()
+        # if self.resource_template['update_mode'] == 'rebuild':
+        #     actions = self.init_destroy_actions() + self.init_build_actions()
         
         return actions
 
 
-    def __init_destroy_actions(self):
+    def init_destroy_actions(self):
         """processes the saved resource data and returns destroy actions, args"""
-        # TODO this seems super complicated and annoying to do.  you have to "Disable", the wait 15 min then delete
-        return []
+        # TODO this seems super complicated and annoying to do.  you have to "Disable", then wait 15+ min then delete.  probably want to have step1 be disable, step 2 delete.  delete will most likely fail, then notify user that the distro will be on orphan report
+        return [
+            {
+                'execution': ( self.__disable_distribution, [] ),
+                'complete': False
+            },
+            {
+                'execution': ( self.__delete_distribution, [] ),
+                'complete': False
+            }
+        ]
 
     
-    def __init_live_data(self):
+    def init_live_data(self):
         return {}
 
-
-    # standard accessors
-    def live_data(self):
-        return {
-            self.__name : self.__live_data
-        }
-
-    
-    def name(self):
-        return self.__name
 
     # custom method for finding orphaned resources
     @classmethod
@@ -168,6 +97,7 @@ class distribution:
 
     # custom functions to be called in build, update, destroy
     def __create_distribution(self, **kwargs):
+        print('create_distro')
         origins = []
         for origin in kwargs['origins']:
             if "default" in origin.keys():
@@ -243,7 +173,7 @@ class distribution:
         }
 
 
-        response = self.__client.create_distribution(
+        response = self.client.create_distribution(
             DistributionConfig={
                 'CallerReference': ("%016x" % getrandbits(64)).upper(), # unique string, create a random hash and log it.  maybe just use resourcename instead?
                 'DefaultRootObject': kwargs["default_root"], 
@@ -274,3 +204,12 @@ class distribution:
             'arn': response['Distribution']['ARN']
         }
 
+
+    def __disable_distribution(self, **kwargs):
+        # TODO: implement
+        return {}
+
+
+    def __delete_distribution(self, **kwargs):
+        # TODO: implement
+        pass

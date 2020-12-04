@@ -871,7 +871,7 @@ def create_resources(template, live_resources):
     aws_policies = clients['iam'].list_policies(
         Scope='AWS',
         MaxItems=1000
-        )['Policies']
+    )['Policies']
 
     iam_policies = dict_wheres(template, ('service', 'iam'), ('type', 'policy'))
 
@@ -1513,16 +1513,16 @@ if __name__ == '__main__':
     
     if new_process:
         #### NEW ####
-        app = cloud_app(active_stage)
+        cabbie = cloud_app(active_stage)
 
         if not destroy:
-            app.build()
+            cabbie.build()
         else:
-            app.destroy()
+            cabbie.destroy()
 
     else:
         #### OLD ####
-        stage_template = app.resource_template
+        stage_template = cabbie.resource_template
 
         if rebuild:
             destroy_resources(live_resources, stage_template)

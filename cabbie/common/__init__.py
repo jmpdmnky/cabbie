@@ -5,8 +5,10 @@ from .files import file_obj
 from .files import file_json
 from .files import join_path
 from .files import list_dir
+from .files import ensure_valid_path
 
 from .dicts import list_where
+from .dicts import list_where_2
 from .dicts import safe_dict_val
 from .dicts import dict_where
 from .dicts import dict_wheres
