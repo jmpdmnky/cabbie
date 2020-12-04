@@ -8,7 +8,7 @@ SERVICE = 'apigateway'
 
 # function
 
-class function(resource):
+class rest_api(resource):
 
 
     def __init__(self, session, name='', attributes={}, resource_template={}, live_data={}, plugins={}, verbose=False):
@@ -27,7 +27,7 @@ class function(resource):
         """processes the saved resource template and returns build actions, args"""
         return [
             {
-                'execution': ( self.__create_function, ['name', 'runtime', 'role', 'handler', 'code', 'timeout', 'memory', 'publish'] ),
+                'execution': ( self.__create_api, ['name', 'model'] ),
                 'complete': False
             }
         ]
@@ -96,30 +96,27 @@ class function(resource):
             )
 
     # custom functions to be called in build, update, destroy
-    def __create_function(self, name, runtime, role, handler, code, timeout, memory, publish):
+    def __create_api(self, name, model):
         # TODO: make publish, timeout, memorysize optional
 
-        args = {
-            'FunctionName': name,
-            'Runtime': runtime,
-            'Role': role,
-            'Handler': handler,
-            'Code': {
-                'ZipFile': code # TODO: add options for s3, github, etc...  probably not s3, maybe add a plugin for github?
-            }, 
-            'Timeout': timeout,
-            'MemorySize': memory,
-            'Publish': publish
-        }
+        if model == 'default':
+            args = {
+                'name': name
+            }
 
-        response = self.client.create_function(**args) # TODO: if we get an error about the IAM role, raise dependency error
-
+            response = self.client.create_rest_api(**args) # TODO: if we get an error about the IAM role, raise dependency error
+        elif model == 'import':
+            # TODO: let users import from swagger, etc
+            raise Exception('Not Implemented')
         #return self.live_data
 
         return {
             'name': response['FunctionName'],
             'arn': response['FunctionArn']
         }
+
+    
+    def __deploy_api(self)
 
     
     def __update_config(self, name, role, runtime, handler, timeout, memory, environment_variables):

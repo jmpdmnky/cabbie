@@ -30,6 +30,7 @@ from aws.resources import iam
 from aws.resources import ddb
 from aws.resources import cloudfront
 from aws.resources import lmbda
+from aws.resources import apigateway
 
 #from core.plugins import plugins
 
@@ -52,6 +53,9 @@ SERVICES = {
     },
     'lambda': {
         'function': lmbda.function
+    },
+    'apigateway': {
+        'rest_api': apigateway.rest_api
     }
 }
 
