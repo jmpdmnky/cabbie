@@ -3,6 +3,8 @@
 from .resources import resource
 from .resources import DependecyNotMetError
 
+from time import sleep
+
 
 SERVICE = 'apigateway'
 
@@ -110,13 +112,35 @@ class rest_api(resource):
             raise Exception('Not Implemented')
         #return self.live_data
 
+        # we need to get the resource ID for '/' path
+        retries = 1
+        wait_time = 1
+
+        while retries < 5:
+            try:
+                root_resource_response = self.client.get_resources(
+                    restApiId=response['id']
+                )
+
+                retries = 9
+            except:
+                sleep(wait_time)
+                retries += 1
+                wait_time *= 2
+
+        if retries == 5:
+            raise Exception("Too many retries, failed to create {}".format(self.name))
+        
+
         return {
-            'name': response['FunctionName'],
-            'arn': response['FunctionArn']
+            'id': response['id'],
+            'name': response['name'],
+            '/': root_resource_response['items'][0] 
         }
 
     
-    def __deploy_api(self)
+    def __deploy_api(self):
+        pass
 
     
     def __update_config(self, name, role, runtime, handler, timeout, memory, environment_variables):
