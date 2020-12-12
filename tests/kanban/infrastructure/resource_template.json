@@ -120,7 +120,7 @@
                     ]
                 }
             ]
-        },
+        }
     },
     "tasks_api_/tasks_resource": {
         "service": "apigateway",
