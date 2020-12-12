@@ -5,6 +5,8 @@ from .resources import DependecyNotMetError
 
 from time import sleep
 
+from safety import try_retry
+
 
 SERVICE = 'apigateway'
 
@@ -98,8 +100,10 @@ class rest_api(resource):
             )
 
     # custom functions to be called in build, update, destroy
+
+    #### API level CREATE functions
     def __create_api(self, name, model):
-        # TODO: make publish, timeout, memorysize optional
+        # TODO: make publish,  timeout, memorysize optional
 
         if model == 'default':
             args = {
@@ -113,6 +117,7 @@ class rest_api(resource):
         #return self.live_data
 
         # we need to get the resource ID for '/' path
+        # the resource isn't created immediately so we may need to retry 
         retries = 1
         wait_time = 1
 
@@ -138,9 +143,133 @@ class rest_api(resource):
             '/': root_resource_response['items'][0] 
         }
 
-    
-    def __deploy_api(self):
-        pass
+
+    def __deploy_api(self, id, stage_name):
+
+        args = {
+            'restApiId': self.live_data['id'],
+            'stageName': stage_name
+        }
+        
+        response = self.client.create_deployment(**args)
+
+        return {}
+
+
+    #### resource level CREATE functions
+    def create_api_resources(self, api_resources):
+        new_data = {}
+
+        cors_methods = []
+
+        for resource in api_resources:
+            args = {
+                'restApiId': self.live_data['id'],
+                'parentId': self.live_data,
+                'pathPart': resource['path'].split('/')[0]
+            }
+
+            response = self.client.create_resource(**args)
+
+            new_data[response['path']]: {
+                'id': response['id'],
+                'path': response['path']
+            }
+
+            if resource['cors']:
+                cors_methods += [{
+                    response['path'],
+                    'OPTIONS',
+                    'NONE'
+                }]
+
+        # loop through cors methods and call create method
+        for cors in cors_methods:
+            self.create_api_method(**cors)
+
+        return new_data
+
+
+    def __add_cors(self, path, method, auth_type):
+        rest_api_id = self.live_data['id']
+        resource_id = self.live_data[resource_path]['id']
+
+        resource_data = {
+            'http_method': 'OPTIONS',
+            'path': path,
+            'api_id': rest_api_id
+        }
+
+        response = self.client.put_method(
+            restApiId=rest_api_id,
+            resourceId=resource_id,
+            httpMethod='OPTIONS',
+            authorizationType='NONE',
+        )
+        
+        resource_data['arn'] = 'arn:aws:execute-api:us-east-1:{account_id}:{api_id}/*/{http_method}{path}'.format(
+            account_id=account_id,
+            api_id=rest_api_id,
+            http_method='OPTIONS',
+            path=re.sub(r'{.+}', '*', path) # handle path params
+        )
+
+        sleep(1)  # TODO: replace sleeps with try/retry
+
+        response = self.client.put_method_response(
+            restApiId=rest_api_id,
+            resourceId=resource_id,
+            httpMethod='OPTIONS',
+            statusCode='200',
+            responseParameters={
+                'method.response.header.Access-Control-Allow-Headers': False, 
+                'method.response.header.Access-Control-Allow-Methods': False, 
+                'method.response.header.Access-Control-Allow-Origin': False
+            },
+            responseModels={
+                'application/json': 'Empty'
+            }
+        )
+
+        sleep(1)
+
+        response = self.client.put_integration(
+            restApiId=rest_api_id,
+            resourceId=resource_id,
+            httpMethod='OPTIONS',
+            type='MOCK',
+            uri='string',
+            requestTemplates={
+                'application/json': '{"statusCode": 200}'
+            },
+            passthroughBehavior='WHEN_NO_MATCH',
+            timeoutInMillis=29000
+        )
+
+        sleep(1)
+
+        response = self.client.put_integration_response(
+            restApiId=rest_api_id,
+            resourceId=resource_id,
+            httpMethod='OPTIONS',
+            statusCode='200',
+            responseParameters={
+                'method.response.header.Access-Control-Allow-Headers': "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'", 
+                'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,POST'", 
+                'method.response.header.Access-Control-Allow-Origin': "'*'"
+            }
+        )
+
+
+    #### method level CREATE functions
+    def create_api_method(self, resource_path, method, auth_type):
+        args = {
+            'restApiId': self.live_data['id'],
+            'resourceId': self.live_data[resource_path]['id'],
+            'httpMethod': method,
+            'authorizationType': auth_type,
+        }
+        uri_base = 'arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/{arn}/invocations'
 
     
     def __update_config(self, name, role, runtime, handler, timeout, memory, environment_variables):

@@ -481,7 +481,7 @@ class cloud_app:
 
                 if actions.split('.')[0] in ['resource']: # we might have other data accessors... vars?
                     #print(string, 'resource')
-                    action, keys = actions.split('.', 1) 
+                    action, keys = actions.split('.', 1) if len(actions.split('.', 1)) > 1 else actions, ''
                     #print(action, keys)
                     val = dict_dotval(functions[action](val), keys) # TODO: this feels hardcode-y
                 else:

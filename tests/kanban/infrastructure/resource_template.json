@@ -74,8 +74,53 @@
         "model": "default",
         "attributes": {
             "name": "tasks_api",
-            "stageName": "api"
-        }
+            "stage_name": "api",
+            "api_resources": [
+                {
+                    "path": "/tasks",
+                    "cors": true
+                },
+                {
+                    "path": "/tasks/-team-id-",
+                    "cors": true
+                },
+                {
+                    "path": "/orgs",
+                    "cors": true
+                },
+                {
+                    "path": "/teams",
+                    "cors": true
+                },
+                {
+                    "path": "/users",
+                    "cors": true
+                }
+            ],
+            "api_methods": [
+                {
+                    "name": "get_tasks",
+                    "parent_resource": "/tasks",
+                    "method": "GET",
+                    "auth_type": "NONE",
+                    "integration": {
+                        "type": "AWS_PROXY",
+                        "arn": "${resource.arn:api_get_tasks_lambda}"
+                    },
+                    "responses": [
+                        {
+                            "status_code": "200",
+                            "models": {
+                                "application/json": "Empty"
+                            },
+                            "parameters": {
+                                "method.response.header.Access-Control-Allow-Origin": false
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
     },
     "tasks_api_/tasks_resource": {
         "service": "apigateway",
@@ -315,7 +360,7 @@
         "model": "default",
         "attributes": {
             "name": "auth_api",
-            "stageName": "api"
+            "stage_name": "api"
         }
     },
     "auth_api_/auth_resource": {

@@ -139,6 +139,9 @@ def list_from_key(l, key): # TODO Rename
 
 
 def dict_dotval(d, s, split_val='.'): #TODO: i hate this name
+    if not s:
+        return d
+
     keys = s.split(split_val)
     val = d
     for k in keys:

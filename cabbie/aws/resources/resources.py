@@ -1,3 +1,7 @@
+# TODO: add template to each resource.  used as a reference, validations, etc
+# TODO: add descriptions where applicable
+# TODO: add capability to ahve optional fields (e.g. descriptions)
+
 import re
 import json
 from time import sleep
