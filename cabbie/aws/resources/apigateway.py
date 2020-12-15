@@ -185,7 +185,8 @@ class rest_api(resource):
 
         # loop through cors methods and call create method
         for cors in cors_methods:
-            self.create_api_method(**cors)
+            # todo: need timed retries here
+            self.__add_cors(**cors)
 
         return new_data
 
@@ -271,44 +272,15 @@ class rest_api(resource):
         }
         uri_base = 'arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/{arn}/invocations'
 
-    
-    def __update_config(self, name, role, runtime, handler, timeout, memory, environment_variables):
-        args = {
-            'FunctionName': name,
-            'Role': role,
-            'Handler': handler,
-            'Timeout': timeout,
-            'MemorySize': memory,
-            'Environment': {
-                'Variables': environment_variables
-            },
-            'Runtime': runtime
-        }
-
-        response = self.client.update_function_configuration(**args)
-
-        #return self.live_data
-
-        return {
-            'aws_managed': True if response else False,
-            'name': response['FunctionName'],
-            'arn': response['FunctionArn']
-        }
+        #self.client.put_method()
 
     
-    def __update_code(self, name, code, publish):
+    def create_api_method_response(self):
+        pass
+    
 
-        args = {
-            'FunctionName': name,
-            'ZipFile': code,
-            'Publish': publish
-        }
-
-        response = self.client.update_function_code(**args)
-
-        #return self.live_data
-
-        return {}
+    def create_api_method_integration(self):
+        pass
 
     
     def __add_permissions(self, name, permissions):
